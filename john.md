@@ -51,6 +51,7 @@ JOHN supports the following types and primitives:
 | -         | -                 | -                     | -                     |
 | string    | :str              | "string"              | "string"              |
 | char      | :chr              | 'c'                   | "c"                   |
+| bool		| :bool				| true					| true					|
 | byte      | :u8               | 0b11100101 or 219b    | 219                   |
 | sbyte     | :i8               | 0b10001011s or -117bs | -117                  |
 | short     | :i16              | 12444i16              | 12444                 |
@@ -63,7 +64,7 @@ JOHN supports the following types and primitives:
 | double    | :f64              | 15.4f64               | 15.4                  |
 | version   | :Jane.Tuples.vrs  | v1.2.3.4              | `{"major": 1, "minor": 2, "patch": 3, "build": 4}` |
 | index     | :Jane.idx         | *1 or ^1              | 1 or -1               |
-| range     | :Jane.rng         | 1..3                  | \[1,2,3\]             |
+| range     | :Jane.rng         | 1..3                  | \[1,2\]               |
 | tuple     | :(T1, T2)         | ("123" 123)           | \["123", 123\]        |
 | link list | :Jane.LList       | "123" -> "234"        | `{"value": 123, "next": &{"value": "234". "next": null}}` |
 | circ llist| :Jane.CircularLList| -> "123" -> "234"    | `{"value": 123, "next": &{"value": "234", "next": &this}}` |

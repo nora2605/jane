@@ -1,8 +1,13 @@
-# Jane
+# The jane monorepo
 
-... will someday be a language i hope
+This monorepo contains some documentation about the Jane Infrastructure
 
-# John
+## Jane
 
-is the corresponding object notation.
-Its documentation is not yet available, sorry.
+See [The Jane feature goals](./jane.md)
+and [Jane by example](https://github.com/nora2605/jane-by-example)
+
+## John
+
+See [The John feature goals](./john.md)
+And the first parser at [JohnJS](https://github.com/nora2605/johnjs)
