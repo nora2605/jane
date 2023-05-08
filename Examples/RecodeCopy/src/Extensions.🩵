@@ -1,0 +1,40 @@
+file use Jane.Graphics
+
+ext -g str {
+    // temporary declared member
+    let colors: str[] = ["255;0;0" "255;128;0" "255;255;0" "0;255;0" "0;255;255" "0;0;255" "139;0;255"]
+
+    fn Black() => "\x1b[30m${me}\x1b[0m"
+    fn Red() => "\x1b[31m${me}\x1b[0m"
+    fn Green() => "\x1b[32m${me}\x1b[0m"
+    fn Yellow() => "\x1b[33m${me}\x1b[0m"
+    fn Blue() => "\x1b[34m${me}\x1b[0m"
+    fn Magenta() => "\x1b[35m${me}\x1b[0m"
+    fn Cyan() => "\x1b[36m${me}\x1b[0m"
+    fn White() => "\x1b[37m${me}\x1b[0m"
+    fn Color(colorCode: str) => "\x1b[38;2;${colorCode}m${me}\x1b[0m"
+    fn Bold() => "\x1b[1m${me}\x1b[0m"
+    fn Dim() => "\x1b[2m${me}\x1b[0m"
+    fn Italic() => "\x1b[3m${me}\x1b[0m"
+    fn Underline() => "\x1b[4m${me}\x1b[0m"
+    fn Inverse() => "\x1b[7m${me}\x1b[0m"
+    fn Hidden() => "\x1b[8m${me}\x1b[0m"
+    fn Strike() => "\x1b[9m${me}\x1b[0m"
+    fn Rainbow() => me.Map((c, i) => "\x1b[38;2;${colors%[i]}m${c}\x1b[0m")
+    fn Framed() => "\x1b[51m${me}\x1b[0m"
+    fn Encircled() => "\x1b[52m${me}\x1b[0m"
+    fn Overlined() => "\x1b[53m${me}\x1b[0m"
+    fn Blink() => "\x1b[5m${me}\x1b[0m"
+    fn RapidBlink() => "\x1b[6m${me}\x1b[0m"
+    fn CrossedOut() => "\x1b[9m${me}\x1b[0m"
+    fn Fraktur() => "\x1b[20m${me}\x1b[0m"
+    fn BoldOff() => "\x1b[21m${me}\x1b[0m"
+    fn ItalicOff() => "\x1b[23m${me}\x1b[0m"
+    fn UnderlineOff() => "\x1b[24m${me}\x1b[0m"
+    fn BlinkOff() => "\x1b[25m${me}\x1b[0m"
+    fn InverseOff() => "\x1b[27m${me}\x1b[0m"
+    fn FramedOff() => "\x1b[51m${me}\x1b[0m"
+    fn EncircledOff() => "\x1b[52m${me}\x1b[0m"
+    fn OverlinedOff() => "\x1b[53m${me}\x1b[0m"
+    fn FrakturOff() => "\x1b[23m${me}\x1b[0m"
+}
