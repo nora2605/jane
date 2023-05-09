@@ -1,5 +1,7 @@
 # This is amazing john notatienon
 
+![John Logo](./johnlogo.svg)
+
 This is the Jane Object and Heap Notation Standard
 
 ## First glance
@@ -51,7 +53,7 @@ JOHN supports the following types and primitives:
 | -         | -                 | -                     | -                     |
 | string    | :str              | "string"              | "string"              |
 | char      | :chr              | 'c'                   | "c"                   |
-| bool		| :bool				| true					| true					|
+| bool  | :bool    | true     | true     |
 | byte      | :u8               | 0b11100101 or 219u8   | 219                   |
 | sbyte     | :i8               | -117i8                | -117                  |
 | short     | :i16              | 12444i16              | 12444                 |
