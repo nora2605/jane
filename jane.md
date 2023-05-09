@@ -1,5 +1,7 @@
 # Jane
 
+![Jane Logo](./janelogo.svg)
+
 ## Infrastructure
 
 - jane: Language Definition
