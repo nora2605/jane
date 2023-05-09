@@ -1,0 +1,104 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "Jane",
+  "repository": {
+    "interpolation": {
+      "name": "support.function",
+      "begin": "\\$\\{",
+      "end": "\\}",
+      "patterns": [
+        {
+          "include": "#expression"
+        }
+      ]
+    },
+    "expression": {
+      "patterns": [{
+        "include": "#string"
+      }, {
+        "include": "#numeral"
+      }]
+    },
+    "verbstring": {
+      "name": "string.verbatim.jane",
+      "begin": "@\"",
+      "end": "\"",
+      "patterns": [{
+        "include": "#interpolation"
+      }, {
+        "include": "#stringescape"
+      }]
+    },
+    "string": {
+      "name": "string.interpolated.jane",
+          "begin": "\"",
+          "end": "\"",
+          "patterns": [{
+            "include": "#interpolation"
+          }, {
+            "include": "#stringescape"
+          }]
+    },
+    "rawstring": {
+      "name": "string.raw",
+      "begin": "raw\"",
+      "end": "\"",
+      "patterns": [{
+        "include": "#stringescape"
+      }]
+    },
+    "stringescape": {
+      "name": "constant.language.escape.jane",
+      "match": "\\\\(?:[\"\\\\/bfnrt\\$]|u[a-fA-F0-9]{4})"
+    },
+    "numeral": {
+      "name": "constant.numeric.jane",
+      "match": "(\\b\\d*\\.\\d+(f(32|64))?\\b)|(\\b\\d+((i|u)(8|16|32|64|128))?\\b)"
+    }
+  },
+  "patterns": [
+    {
+      "name": "keyword.control.jane",
+      "match": "\\b(let|new|fn|if|else|for|in|while|switch|case|break|continue|return|match|true|false|file|class|namespace|use)\\b"
+    },
+    {
+      "name": "entity.name.type",
+      "match": "(str|char|bool|((i|u)(8|16|32|64|128))|(f(32|64))|abyss)"
+    },
+    {
+      "name": "comment.line.double-slash.jane",
+      "match": "//.*$"
+    },
+    {
+      "name": "support.other.flags.jane",
+      "match": "\\-[a-zA-Z]+"
+    },
+    {
+      "name": "support.function.typearrow.jane",
+      "match": "\\->"
+    },
+    {
+      "name": "entity.name.function.jane",
+      "match": "(?:fn\\s+(?:\\-[a-zA-Z]+\\s)?)([A-Za-z][a-zA-Z0-9_-]*)(?:\\(.*\\))",
+      "captures": {
+        "0": {
+          "name": "entity.name.method.jane"
+        }
+      }
+    },
+    {
+      "name": "comment.block.jane",
+      "begin": "/\\*",
+      "end": "\\*/"
+    }, {
+      "include": "#string"
+    }, {
+      "include": "#verbstring"
+    }, {
+      "include": "#rawstring"
+    }, {
+      "include": "#numeral"
+    }
+  ],
+  "scopeName": "source.jn"
+}
