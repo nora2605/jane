@@ -71,7 +71,7 @@ JOHN supports the following types and primitives:
 | link list | :Jane.LList       | -> "123" "234"        | `{"value": 123, "next": &{"value": "234". "next": null}}` |
 | circ llist| :Jane.CircularLList| -> "123" "234" ->    | `{"value": 123, "next": &{"value": "234", "next": &this}}` |
 
-## Implementatations
+## Implementations
 
 There is a JOHN Parser for C#: [Nuget Package](https://www.nuget.org/packages/JOHNCS), [Repository](https://github.com/nora2605/JOHNCS)
 and for JS: [NPM Package](https://www.npmjs.com/package/johnjs), [Repository](https://github.com/nora2605/johnjs)
