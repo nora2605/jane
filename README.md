@@ -15,4 +15,4 @@ and the [SHJI](https://github.com/nora2605/SHJI)
 <img src="./johnlogo.svg" width="256" height="256" alt="Jane Logo" />
 
 See [The John features](./john.md)
-And the [implementations](./john.md#Implementations)
+And the [implementations](./john.md#implementations)
