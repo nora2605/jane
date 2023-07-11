@@ -6,9 +6,9 @@
 
 - jane: Language Definition
 - john: Jane Object and Heap Notation [See here](./john.md)
-- eric: Extensions and Related Integrations Commandline; eric i pooper
-- shjc: shitty jane compiler
-- shji: shitty jane REPL
+- eric: Extensions and Related Integrations Commandline; eric i package
+- shjc: Schleswig Holstein jane compiler
+- shji: Schleswig Holstein jane interpreter
 
 ## Featur and stuf i thought abuot
 
