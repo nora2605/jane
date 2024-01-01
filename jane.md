@@ -10,9 +10,9 @@
 - shjc: Schleswig Holstein jane compiler
 - shji: Schleswig Holstein jane interpreter
 
-## Featur and stuf i thought abuot
+## Features and stuff i thought abuot
 
-- define pragma
+- Arrays are Lists and Slices (internal workings are unimportant for end user)
 - physical dimensions for mathematical operations (and casting) (velocity as M*S^-1 and Voltage as E*Q^-1 etc.)
 - Object oriented ig
 - PascalCase for classes and static functions
@@ -20,26 +20,32 @@
 - UPPERCASE for internal constants
 - return can be omitted at the end of a function
 - syringe operator
-- preprocessor directives | something like: `@(Expand(i, 0, 4))s[i] = d[i];` gets preprocessed to `s[0] = d[0]; s[1] = d[1]; s[2] = d[2]; s[3] = d[3]; s[4] = d[4];` // This is just what a good compiler does ik.....
+- preprocessor directives
 - Combinators
 - Standard Library class for mathematical terms
 - Standard Library least squares
 - Standard Library equation solver
+- Currying
 - REPL
 - Gleam Expression Blocks
 - extensions Blocks
 - Swift error handling
 - named arguments
+- () operator for calling stuff
+- spelled out variants for bitwise operations (xor, nxor)
+- try -f if you really wanna fuck around and find out
 
 ## Data Types
 
 Primitives:
+
 - Signed and unsigned integers from 8 to 128 bits
 - Float32 and 64
 - Strings
 - Characters (UTF-16)
 
 Inbuilt:
+
 - Index, Range, other utils
 - Enums
 - Structs
@@ -129,10 +135,10 @@ fn -s AddHandler(type: str, handler: Fn(i32) -> abyss) {
 } 
 ```
 
-### **Stripping parameters to new function**
+### **Currying**
 
 ```jane
-gotta need a good way to do this
+// gotta need a good way to do this
 ```
 
 ### **When you dereference a non primitive type it will be a reference and not a copy**
@@ -316,4 +322,20 @@ x ==& y // Checks for a binary flag x on y (basically)
 1 ^ 1 // this one's nice, it's a power
 1 ~ 1 // This is a concatenation operator
 1 ? 1 : 1 // This is a ternary operator
+```
+
+### **Inline Dictionaries and Sets and funny operators**
+
+```jane
+"abc" in "abcd" // true
+"abc" in ["abc"] // true
+"a" in ["abc"] // false
+["abc", "def"] in ["abc", "def", "ghi"] // true
+["def", "abc"] in ["abc", "def"] // false
+"abc" iso str // true
+[1,2,3] in [1,3,2,4] // false
+// => need to represent sets
+[[1,2,3]] == [[3,1,2]] // true
+// => use for double curlies?
+{{1: "hi", 2: "luci"}} // [Map<i32, str>]
 ```
