@@ -1,6 +1,6 @@
 ﻿using Jane.AST;
 
-namespace SHJI.Interpreter
+namespace SHJI.VM
 {
     internal interface IJaneObject
     {
@@ -12,7 +12,7 @@ namespace SHJI.Interpreter
         public ObjectType Type();
         public string Inspect();
 
-        public string? ToString() => Inspect(); 
+        public string? ToString() => Inspect();
     }
 
     internal delegate IJaneObject JaneBuiltinFunction(params IJaneObject[] args);

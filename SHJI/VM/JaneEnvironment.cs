@@ -5,14 +5,14 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace SHJI.Interpreter
+namespace SHJI.VM
 {
     internal class JaneEnvironment
     {
         public Dictionary<string, IJaneObject> Store { get; set; }
 
         public Dictionary<string, Dictionary<(ObjectType, ObjectType), Func<IJaneObject, IJaneObject, IJaneObject>>> Operators;
-        
+
         public JaneEnvironment? Outer { get; }
         public JaneEnvironment()
         {
@@ -28,7 +28,6 @@ namespace SHJI.Interpreter
         {
             if (Store.TryGetValue(key, out IJaneObject? obj)) return obj;
             else if (Outer is not null) return Outer.Get(key);
-            else if (Builtins.Builtins.Standard.TryGetValue(key, out JaneBuiltinFunction? blt)) return (JaneBuiltin)blt;
             return IJaneObject.JANE_UNINITIALIZED;
         }
 
@@ -45,7 +44,7 @@ namespace SHJI.Interpreter
 
         public bool Has(string key, bool CheckOuter = true)
         {
-            return Store.ContainsKey(key) || (CheckOuter && Outer is not null && Outer.Has(key));
+            return Store.ContainsKey(key) || CheckOuter && Outer is not null && Outer.Has(key);
         }
 
         public IJaneObject this[string key] { get => Get(key); set => Set(key, value); }

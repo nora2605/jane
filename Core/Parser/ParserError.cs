@@ -7,20 +7,14 @@ using System.Threading.Tasks;
 
 namespace Jane.Parser
 {
-    public class ParserError
+    public class ParserError(string Message, Token ErroneousToken, ParserErrorType Type = ParserErrorType.Unspecified)
     {
-        public string Message { get; }
-        public ParserErrorType Type { get; }
+        public string Message { get; } = Message;
+        public ParserErrorType Type { get; } = Type;
 
-        public int Line { get; }
-        public int Column { get; }
-        public ParserError(string Message, Token ErroneousToken, ParserErrorType Type=ParserErrorType.Unspecified)
-        { 
-            this.Message = Message;
-            this.Type = Type;
-            Line = ErroneousToken.Line;
-            Column = ErroneousToken.Column;
-        }
+        public int Line { get; } = ErroneousToken.Line;
+        public int Column { get; } = ErroneousToken.Column;
+
         public override string ToString()
         {
             return $"Parser Error: {Type} Error on Line {Line}, Column {Column}: {Message}";

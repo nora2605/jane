@@ -56,7 +56,7 @@ namespace Jane.Parser
         Token curToken;
         Token peekToken;
 
-        public ParserError[] Errors { get => errors.ToArray(); }
+        public ParserError[] Errors => [.. errors];
         private readonly List<ParserError> errors;
         #endregion
 
@@ -65,7 +65,7 @@ namespace Jane.Parser
             Tokenizer = tokenizer;
             NextToken();
             NextToken();
-            errors = new();
+            errors = [];
 
             UnaryParseFns = new()
             { 
@@ -126,8 +126,8 @@ namespace Jane.Parser
         public ASTRoot ParseProgram()
         {
             ASTRoot program = new() { Token = curToken };
-            List<IStatement> statements = new();
-            program.statements = Array.Empty<IStatement>();
+            List<IStatement> statements = [];
+            program.statements = [];
             while (curToken.Type != TokenType.EOF)
             {
                 IStatement? statement = ParseStatement();
@@ -135,7 +135,7 @@ namespace Jane.Parser
                 statements.Add(statement);
                 NextToken();
             }
-            program.statements = statements.ToArray();
+            program.statements = [.. statements];
             return program;
         }
 
@@ -222,7 +222,7 @@ namespace Jane.Parser
         {
             FunctionLiteral literal = new() { Token = curToken };
 
-            List<string> flags = new();
+            List<string> flags = [];
             while (ExpectPeek(TokenType.MINUS) || ExpectPeek(TokenType.DECREMENT))
             {
                 if (CurTokenIs(TokenType.MINUS))
@@ -234,7 +234,7 @@ namespace Jane.Parser
                     if (ExpectPeek(TokenType.IDENT)) flags.Add(curToken.Literal);
                 }
             }
-            literal.Flags = flags.ToArray();
+            literal.Flags = [.. flags];
             if (!ExpectPeek(TokenType.IDENT))
             {
                 return null;
@@ -272,11 +272,11 @@ namespace Jane.Parser
 
         Identifier[]? ParseFunctionParameters()
         {
-            List<Identifier> parameters = new();
+            List<Identifier> parameters = [];
             if (PeekTokenIs(TokenType.RPAREN))
             {
                 NextToken();
-                return Array.Empty<Identifier>();
+                return [];
             }
             do {
                 NextToken();
@@ -285,13 +285,13 @@ namespace Jane.Parser
                 parameters.Add((Identifier)ident);
             } while (ExpectPeek(TokenType.COMMA));
             if (!ExpectPeek(TokenType.RPAREN)) return null;
-            return parameters.ToArray();
+            return [.. parameters];
         }
 
         BlockStatement ParseBlockStatement()
         {
             BlockStatement block = new() { Token = curToken };
-            List<IStatement> statements = new();
+            List<IStatement> statements = [];
             NextToken();
             while (!CurTokenIs(TokenType.RBRACE) && !CurTokenIs(TokenType.EOF))
             {
@@ -304,7 +304,7 @@ namespace Jane.Parser
                 statements.Add(statement);
                 NextToken();
             }
-            block.Statements = statements.ToArray();
+            block.Statements = [.. statements];
             return block;
         }
         #endregion
@@ -353,7 +353,7 @@ namespace Jane.Parser
         IExpression? ParseIndexingExpression(IExpression? left)
         {
             if (left is null) return null;
-            IndexingExpression i = new() { Token = curToken, Indexee = left };
+            IndexingExpression i = new() { Token = curToken, Indexed = left };
             NextToken();
             var e = ParseExpression();
             if (!ExpectPeek(TokenType.RSQB)) return null;
@@ -462,10 +462,10 @@ namespace Jane.Parser
 
         IExpression[]? ParseArguments()
         {
-            List<IExpression> args = new();
+            List<IExpression> args = [];
             if (ExpectPeek(TokenType.RPAREN))
             {
-                return args.ToArray();
+                return [.. args];
             }
             do
             {
@@ -475,14 +475,14 @@ namespace Jane.Parser
                 args.Add(e);
             } while (ExpectPeek(TokenType.COMMA));
             if (!ExpectPeek(TokenType.RPAREN)) return null;
-            return args.ToArray();
+            return [.. args];
         }
 
         // comma seperated
         IExpression[]? ParseExpressionList(TokenType end)
         {
-            List<IExpression> l = new();
-            if (ExpectPeek(end)) return l.ToArray();
+            List<IExpression> l = [];
+            if (ExpectPeek(end)) return [.. l];
             do
             {
                 ExpectPeek(TokenType.COMMA);
@@ -491,7 +491,7 @@ namespace Jane.Parser
                 if (e is null) return null;
                 l.Add(e);
             } while (!ExpectPeek(end));
-            return l.ToArray();
+            return [.. l];
         }
         #endregion
 
@@ -508,7 +508,7 @@ namespace Jane.Parser
         IExpression? ParseInterpolatedString()
         {
             InterpolatedStringLiteral lit = new() { Token = curToken };
-            List<IExpression> contents = new();
+            List<IExpression> contents = [];
             while (ExpectPeek(TokenType.STRING_CONTENT) || ExpectPeek(TokenType.LINTERPOLATE))
             {
                 if (CurTokenIs(TokenType.STRING_CONTENT))
@@ -522,7 +522,7 @@ namespace Jane.Parser
                     contents.Add(e);
                 }
             }
-            lit.Expressions = contents.ToArray();
+            lit.Expressions = [.. contents];
             if (!ExpectPeek(TokenType.DOUBLEQUOTE)) return null;
             return lit;
         }
@@ -540,7 +540,7 @@ namespace Jane.Parser
         IExpression? ParseVerbIntString()
         {
             InterpolatedVerbatimStringLiteral lit = new() { Token = curToken };
-            List<IExpression> contents = new();
+            List<IExpression> contents = [];
             while (ExpectPeek(TokenType.STRING_CONTENT) || ExpectPeek(TokenType.LINTERPOLATE))
             {
                 if (CurTokenIs(TokenType.STRING_CONTENT))
@@ -554,7 +554,7 @@ namespace Jane.Parser
                     contents.Add(e);
                 }
             }
-            lit.Expressions = contents.ToArray();
+            lit.Expressions = [.. contents];
             if (!ExpectPeek(TokenType.DOUBLEQUOTE)) return null;
             return lit;
         }
@@ -591,7 +591,7 @@ namespace Jane.Parser
             else lit = new IntegerLiteral() { Token = curToken, Value = i };
             if (ExpectPeek(TokenType.IDENT))
             {
-                lit.ImmediateCoalescion = curToken.Literal;
+                lit.ImmediateCoalescing = curToken.Literal;
             }
             return lit;
         }
@@ -602,7 +602,7 @@ namespace Jane.Parser
                 return null;
             if (ExpectPeek(TokenType.IDENT))
             {
-                lit.ImmediateCoalescion = curToken.Literal;
+                lit.ImmediateCoalescing = curToken.Literal;
             }
             return lit;
         }

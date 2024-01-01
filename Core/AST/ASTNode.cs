@@ -12,15 +12,10 @@ namespace Jane.AST
     {
     }
 
-    public struct BlockStatement : IASTNode
+    public struct BlockStatement(IStatement single) : IASTNode
     {
-        public IStatement[] Statements;
+        public IStatement[] Statements = [single];
         public Token Token { get; set; }
-
-        public BlockStatement(IStatement single)
-        {
-            Statements = new[] { single };    
-        }
 
         public readonly string TokenLiteral() => Token.Literal;
         public override readonly string ToString() => $"{{{(Statements.Length == 0 ? "" : Statements.Select(s => "\n\t" + s.ToString()).Aggregate((a, b) => a + b))}\n}}";
@@ -28,7 +23,7 @@ namespace Jane.AST
 
     public interface INumberLiteral : IExpression
     {
-        public string? ImmediateCoalescion { get; set; }
+        public string? ImmediateCoalescing { get; set; }
     }
 
     public interface IASTNode
