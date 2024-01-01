@@ -40,7 +40,7 @@ So as you see, John supports the following cool epic awesome features:
 + objects and nesting
 + arrays
 + tuples
-+ heaps (just there because of the name tbh, see below)
++ heaps (just as nested linked lists though... it's just there because of the name)
 + typing (see below)
 
 Minimized JOHN does not require any newlines.
@@ -70,3 +70,8 @@ JOHN supports the following types and primitives:
 | tuple     | :(T1, T2)         | ("123" 123)           | \["123", 123\]        |
 | link list | :Jane.LList       | -> "123" "234"        | `{"value": 123, "next": &{"value": "234". "next": null}}` |
 | circ llist| :Jane.CircularLList| -> "123" "234" ->    | `{"value": 123, "next": &{"value": "234", "next": &this}}` |
+
+## Implementations
+
+There is a JOHN Parser for C#: [Nuget Package](https://www.nuget.org/packages/JOHNCS), [Repository](https://github.com/nora2605/JOHNCS)
+and for JS: [NPM Package](https://www.npmjs.com/package/johnjs), [Repository](https://github.com/nora2605/johnjs)
