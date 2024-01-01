@@ -1,0 +1,50 @@
+{
+	"$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+	"name": "JOHN",
+	"patterns": [
+		{
+			"include": "#keywords"
+		},
+		{
+			"include": "#strings"
+		},
+        {
+            "include": "#numerals"
+        },
+        {
+            "include": "#keys"
+        }
+	],
+	"repository": {
+		"keywords": {
+			"patterns": [{
+				"name": "keyword.control.john",
+				"match": "(true|false|\\#)"
+			}]
+		},
+        "keys": {
+            "patterns": [{
+                "name": "meta.key.john",
+                "match": "\\b[a-zA-Z][a-zA-Z0-9\\-\\_]*\\b"
+            }]
+        },
+        "numerals": {
+            "patterns": [{
+                "name": "constant.numeric",
+                "match": "(\\d*\\.\\d+(f(32|64)))|(\\d+((i|u)(8|16|32|64|128))?)"
+            }]
+        },
+		"strings": {
+			"name": "string.john",
+			"begin": "\"",
+			"end": "\"",
+			"patterns": [
+				{
+					"name": "constant.character.escape.john",
+					"match": "\\\\."
+				}
+			]
+		}
+	},
+	"scopeName": "source.john"
+}

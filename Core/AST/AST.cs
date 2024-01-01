@@ -47,10 +47,10 @@ namespace Jane.AST
     public struct IndexingExpression : IExpression
     {
         public Token Token { get; set; }
-        public IExpression Indexee;
+        public IExpression Indexed;
         public IExpression Index;
 
-        public readonly override string ToString() => $"{Indexee}[{Index}]";
+        public readonly override string ToString() => $"{Indexed}[{Index}]";
     }
 
     public struct FunctionLiteral : IStatement
@@ -101,8 +101,8 @@ namespace Jane.AST
     {
         public Token Token { get; set; }
         public int Value;
-        public string? ImmediateCoalescion { get; set; }
-        public override readonly string ToString() => $"{Token.Literal}{(ImmediateCoalescion is null ? "" : ImmediateCoalescion)}";
+        public string? ImmediateCoalescing { get; set; }
+        public override readonly string ToString() => $"{Token.Literal}{(ImmediateCoalescing is null ? "" : ImmediateCoalescing)}";
     }
 
     // Gets parsed only if the supplied integer is too long
@@ -111,33 +111,33 @@ namespace Jane.AST
     {
         public Token Token { get; set; }
         public long Value;
-        public string? ImmediateCoalescion { get; set; }
-        public override readonly string ToString() => $"{Token.Literal}{(ImmediateCoalescion is null ? "" : ImmediateCoalescion)}";
+        public string? ImmediateCoalescing { get; set; }
+        public override readonly string ToString() => $"{Token.Literal}{(ImmediateCoalescing is null ? "" : ImmediateCoalescing)}";
     }
 
     public struct Int128Literal : IExpression, INumberLiteral
     {
         public Token Token { get; set; }
         public Int128 Value;
-        public string? ImmediateCoalescion { get; set; }
-        public override readonly string ToString() => $"{Token.Literal}{(ImmediateCoalescion is null ? "" : ImmediateCoalescion)}";
+        public string? ImmediateCoalescing { get; set; }
+        public override readonly string ToString() => $"{Token.Literal}{(ImmediateCoalescing is null ? "" : ImmediateCoalescing)}";
     }
 
     public struct UInt128Literal : IExpression, INumberLiteral
     {
         public Token Token { get; set; }
         public UInt128 Value;
-        public string? ImmediateCoalescion { get; set; }
-        public override readonly string ToString() => $"{Token.Literal}{(ImmediateCoalescion is null ? "" : ImmediateCoalescion)}";
+        public string? ImmediateCoalescing { get; set; }
+        public override readonly string ToString() => $"{Token.Literal}{(ImmediateCoalescing is null ? "" : ImmediateCoalescing)}";
     }
     // Double by default, can be made into f32 by attaching f or f32
     public struct FloatLiteral : IExpression, INumberLiteral
     {
         public Token Token { get; set; }
         public double Value;
-        public string? ImmediateCoalescion { get; set; }
+        public string? ImmediateCoalescing { get; set; }
 
-        public override readonly string ToString() => $"{Token.Literal}{(ImmediateCoalescion is null ? "" : ImmediateCoalescion)}";
+        public override readonly string ToString() => $"{Token.Literal}{(ImmediateCoalescing is null ? "" : ImmediateCoalescing)}";
     }
 
     public struct PrefixExpression : IExpression

@@ -4,9 +4,8 @@ using System.Text.RegularExpressions;
 using Jane.Lexer;
 using Jane.Parser;
 using System.ANSIConsole;
-using System.Runtime.CompilerServices;
-using SHJI.Interpreter;
 using Jane.AST;
+using SHJI.VM;
 
 namespace SHJI
 {
@@ -122,7 +121,7 @@ namespace SHJI
                 Thread it = new(new ThreadStart(() => {
                     try
                     {
-                        output = Interpreter.Interpreter.Eval(AST, env);
+                        output = IJaneObject.JANE_ABYSS;
                     }
                     catch (Exception ex)
                     {
@@ -148,10 +147,6 @@ namespace SHJI
                     .Cyan()
 #endif
                 );
-            }
-            catch (RuntimeError e)
-            {
-                Console.Error.WriteLine($"{e.Message}; at Line {e.Token.Line}, Column {e.Token.Column}".Red());
             }
             catch (NotImplementedException e)
             {

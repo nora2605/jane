@@ -62,18 +62,13 @@ namespace Jane.Lexer
         CONCAT
     }
 
-    public struct Token
+    public struct Token(TokenType Type, string Literal)
     {
-        public TokenType Type { get; set; }
-        public string Literal { get; set; }
+        public TokenType Type { get; set; } = Type;
+        public string Literal { get; set; } = Literal;
         public int Line { get; set; }
         public int Column { get; set; }
 
-        public Token(TokenType Type, string Literal)
-        {
-            this.Type = Type;
-            this.Literal = Literal;
-        }
         public Token(TokenType Type, string Literal, int Line, int Column) : this(Type, Literal)
         {
             this.Line = Line;

@@ -27,11 +27,12 @@ Compiler (SHJC)
 	* Range Operator
 * Type Parsing:
 	* Number suffixes
-* WHAT THE FUCK IS A FUNCTION TYPE EXPRESSION �������������������������������������
+* WHAT THE FUCK IS A FUNCTION TYPE EXPRESSION
 * Generics
 * currying operator?
 * generator (yield)
 * type aliasing
+* https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/operators/patterns
 
 
 ## Parser
