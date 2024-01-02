@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace SHJI.VM
 {
-    internal class JaneEnvironment
+    public class JaneEnvironment
     {
         public Dictionary<string, IJaneObject> Store { get; set; }
 
@@ -16,8 +16,8 @@ namespace SHJI.VM
         public JaneEnvironment? Outer { get; }
         public JaneEnvironment()
         {
-            Store = new();
-            Operators = new();
+            Store = [];
+            Operators = [];
         }
         public JaneEnvironment(JaneEnvironment outer) : this()
         {

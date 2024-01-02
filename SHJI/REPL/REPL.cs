@@ -6,6 +6,9 @@ using Jane.Parser;
 using System.ANSIConsole;
 using Jane.AST;
 using SHJI.VM;
+using SHJI.VMCompiler;
+using System.Net.NetworkInformation;
+using JOHNCS;
 
 namespace SHJI
 {
@@ -106,56 +109,38 @@ namespace SHJI
                     Console.WriteLine(a);
                 }
             }
-            Console.WriteLine("Interpreter Output: ".Cyan().Bold());
+            Console.WriteLine("Compiler Output: ".Cyan().Bold());
 #else
-                if (ps.Errors.Length > 0) {
-                    Console.WriteLine(ps.Errors.Select(e => e.ToString()).Aggregate((a, b) => a + "\n" + b));
-                    return;
-                }
+            if (ps.Errors.Length > 0) {
+                Console.WriteLine(ps.Errors.Select(e => e.ToString()).Aggregate((a, b) => a + "\n" + b));
+                return;
+            }
 #endif
+            Compiler cmp = new();
             try
             {
-                IJaneObject output = IJaneObject.JANE_UNINITIALIZED;
-                Exception? e = null;
-                // 256 MB of stack size so i don't have to deal with anything and i'll leave it to the OS like a true evil person
-                Thread it = new(new ThreadStart(() => {
-                    try
-                    {
-                        output = IJaneObject.JANE_ABYSS;
-                    }
-                    catch (Exception ex)
-                    {
-                        e = ex;
-                    }
-                }), 0b1000000000000000000000000000);
-
-                it.Start();
-                it.Join(2000);
-                if (it.IsAlive)
-                {
-                    Console.Write($"Welp you seem to have given it some tough prompt... ");
-#if DEBUG
-                    Console.WriteLine();
-                    Console.WriteLine($"{it.GetApartmentState()}");
-#endif
-                    it.Join();
-                }
-                if (output == IJaneObject.JANE_UNINITIALIZED) throw e ?? new Exception("uh...");
-
-                if (output != IJaneObject.JANE_ABYSS) Console.WriteLine(output.Inspect()
-#if DEBUG
-                    .Cyan()
-#endif
-                );
-            }
-            catch (NotImplementedException e)
-            {
-                Console.Error.WriteLine(e.Message.Red());
+                cmp.Compile(AST);
+                Console.WriteLine(ByteCode.Stringify(cmp.GetByteCode().Instructions).Cyan());
+                Console.WriteLine(JOHN.Minify(JOHN.Serialize(cmp.GetByteCode().Constants.Select(x => x.Inspect()).ToArray())).Cyan().Italic());
             }
             catch (Exception e)
             {
-                Console.Error.WriteLine(e.Message);
+                Console.WriteLine("Failed to Compile. " + e.Message.Red());
+                return;
             }
+            VM.VM machine = new(cmp.GetByteCode());
+            try
+            {
+                machine.Run();
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("Failed to Execute VM. " + e.Message.Red());
+                return;
+            }
+
+            Console.WriteLine("VM Stacktop: ".Blue().Bold());
+            Console.WriteLine(machine.StackTop().Inspect());
         }
 
         static int CountNestLevel(Tokenizer t)

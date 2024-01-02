@@ -2,7 +2,7 @@
 
 namespace SHJI.VM
 {
-    internal interface IJaneObject
+    public interface IJaneObject
     {
         public readonly static IJaneObject JANE_ABYSS = new JaneAbyss();
         public readonly static IJaneObject JANE_TRUE = new JaneBool() { Value = true };
@@ -15,9 +15,9 @@ namespace SHJI.VM
         public string? ToString() => Inspect();
     }
 
-    internal delegate IJaneObject JaneBuiltinFunction(params IJaneObject[] args);
+    public delegate IJaneObject JaneBuiltinFunction(params IJaneObject[] args);
 
-    internal struct JaneBuiltin : IJaneObject
+    public struct JaneBuiltin : IJaneObject
     {
         public JaneBuiltinFunction Fn;
         public readonly ObjectType Type() => ObjectType.Builtin;
@@ -26,14 +26,14 @@ namespace SHJI.VM
         public static implicit operator JaneBuiltin(JaneBuiltinFunction f) => new() { Fn = f };
     }
 
-    internal struct JaneArray : IJaneObject
+    public struct JaneArray : IJaneObject
     {
         public IJaneObject[] Value;
         public readonly ObjectType Type() => ObjectType.Array;
         public readonly string Inspect() => $"[{Value.Select(x => x.Inspect()).Aggregate((a, b) => $"{a} {b}")}]";
     }
 
-    internal struct JaneFunction : IJaneObject
+    public struct JaneFunction : IJaneObject
     {
         public string Name;
         public Identifier[] Parameters;
@@ -47,34 +47,34 @@ namespace SHJI.VM
     }
 
     #region Integer Types
-    internal struct JaneInt : IJaneObject
+    public struct JaneInt : IJaneObject
     {
         public int Value { get; set; }
         public readonly ObjectType Type() => ObjectType.Int32;
         public readonly string Inspect() => Value.ToString();
     }
 
-    internal struct JaneShort : IJaneObject
+    public struct JaneShort : IJaneObject
     {
         public short Value { get; set; }
         public readonly ObjectType Type() => ObjectType.Int16;
         public readonly string Inspect() => Value.ToString();
     }
-    internal struct JaneLong : IJaneObject
+    public struct JaneLong : IJaneObject
     {
         public long Value { get; set; }
         public readonly ObjectType Type() => ObjectType.Int64;
         public readonly string Inspect() => Value.ToString();
     }
 
-    internal struct JaneInt128 : IJaneObject
+    public struct JaneInt128 : IJaneObject
     {
         public Int128 Value { get; set; }
         public readonly ObjectType Type() => ObjectType.Int128;
         public readonly string Inspect() => Value.ToString();
     }
 
-    internal struct JaneByte : IJaneObject
+    public struct JaneByte : IJaneObject
     {
         public byte Value
         {
@@ -83,7 +83,7 @@ namespace SHJI.VM
         public readonly ObjectType Type() => ObjectType.UInt8;
         public readonly string Inspect() => Value.ToString();
     }
-    internal struct JaneSByte : IJaneObject
+    public struct JaneSByte : IJaneObject
     {
         public sbyte Value
         {
@@ -92,7 +92,7 @@ namespace SHJI.VM
         public readonly ObjectType Type() => ObjectType.Int8;
         public readonly string Inspect() => Value.ToString();
     }
-    internal struct JaneUInt : IJaneObject
+    public struct JaneUInt : IJaneObject
     {
         public uint Value
         {
@@ -102,7 +102,7 @@ namespace SHJI.VM
         public readonly string Inspect() => Value.ToString();
     }
 
-    internal struct JaneUShort : IJaneObject
+    public struct JaneUShort : IJaneObject
     {
         public ushort Value
         {
@@ -112,7 +112,7 @@ namespace SHJI.VM
         public readonly string Inspect() => Value.ToString();
     }
 
-    internal struct JaneULong : IJaneObject
+    public struct JaneULong : IJaneObject
     {
         public ulong Value
         {
@@ -122,7 +122,7 @@ namespace SHJI.VM
         public readonly string Inspect() => Value.ToString();
     }
 
-    internal struct JaneUInt128 : IJaneObject
+    public struct JaneUInt128 : IJaneObject
     {
         public UInt128 Value
         {
@@ -133,14 +133,14 @@ namespace SHJI.VM
     }
     #endregion
     #region Floating Point Numbers
-    internal struct JaneFloat : IJaneObject
+    public struct JaneFloat : IJaneObject
     {
         public float Value { get; set; }
         public readonly ObjectType Type() => ObjectType.Float32;
         public readonly string Inspect() => Value.ToString();
     }
 
-    internal struct JaneDouble : IJaneObject
+    public struct JaneDouble : IJaneObject
     {
         public double Value { get; set; }
         public readonly ObjectType Type() => ObjectType.Float64;
@@ -148,14 +148,14 @@ namespace SHJI.VM
     }
     #endregion
     #region Other Primitives
-    internal struct JaneString : IJaneObject
+    public struct JaneString : IJaneObject
     {
         public string Value { get; set; }
         public readonly ObjectType Type() => ObjectType.String;
         public readonly string Inspect() => Value;
     }
 
-    internal struct JaneBool : IJaneObject
+    public struct JaneBool : IJaneObject
     {
         public bool Value
         {
@@ -165,7 +165,7 @@ namespace SHJI.VM
         public readonly string Inspect() => Value.ToString().ToLower();
     }
 
-    internal struct JaneChar : IJaneObject
+    public struct JaneChar : IJaneObject
     {
         public char Value
         {
@@ -175,19 +175,16 @@ namespace SHJI.VM
         public readonly string Inspect() => Value.ToString();
     }
 
-    internal struct JaneAbyss : IJaneObject
+    public struct JaneAbyss(bool init = true) : IJaneObject
     {
-        public bool init;
-        public JaneAbyss(bool init = true)
-        {
-            this.init = init;
-        }
+        public bool init = init;
+
         public readonly ObjectType Type() => ObjectType.Abyss;
         public readonly string Inspect() => "abyss";
     }
     #endregion
 
-    internal enum ObjectType
+    public enum ObjectType
     {
         Abyss,
         Bool,

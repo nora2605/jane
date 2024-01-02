@@ -48,11 +48,7 @@ Compiler (SHJC)
 
 ## Interpreter
 
-Transition from Tree-Walking to Bytecode (speed)
-
-* A proper type-system (I have to think about a way I can evaluate operators without hardcoding every number type)						
-    * To that: Maybe have a file called Builtins\/<NumberType\>.cs that contains a lot of Operators so it doesn't clog up the Main Interpreter file
-	* Yeah actually Builtins/Type.cs seems like a good way to have a standard library of sorts.
+* A proper type-system (I have to think about a way I can evaluate operators without hardcoding every number type)
 	* Also Rewrite the ObjectType enum to be a class to support generics, inbuilts, all that
 		* That also means there will be no "Jane..." structs anymore, just JaneObject with a specific type that is linked to the standard library
 		* Maybe the primitives have to stay, i don't know
@@ -62,7 +58,7 @@ Transition from Tree-Walking to Bytecode (speed)
 * Type inference for objects
 * Custom Operator Overloading
 * Extension Blocks
-* (a vision that was granted to me by alan turing in a dream) INFIX OPERATOR TYPE INFER ALGORITHM:
+* (a vision that was granted to me by Alan Turing in a dream) INFIX OPERATOR TYPE INFER ALGORITHM:
 	* Pseudocode
 ```
 	InferTypes(BinaryOperator, Type1, Type2?, depth=0) {

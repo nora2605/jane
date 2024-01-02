@@ -6,11 +6,11 @@
 
 - jane: Language Definition
 - john: Jane Object and Heap Notation [See here](./john.md)
-- eric: Extensions and Related Integrations Commandline; eric i package
+- eric: Extensions and Related Integrations CommandLine; eric i package
 - shjc: Schleswig Holstein jane compiler
 - shji: Schleswig Holstein jane interpreter
 
-## Features and stuff i thought abuot
+## Features and stuff i thought about
 
 - Arrays are Lists and Slices (internal workings are unimportant for end user)
 - physical dimensions for mathematical operations (and casting) (velocity as M*S^-1 and Voltage as E*Q^-1 etc.)
@@ -34,6 +34,7 @@
 - () operator for calling stuff
 - spelled out variants for bitwise operations (xor, nxor)
 - try -f if you really wanna fuck around and find out
+- tuple indexing
 
 ## Data Types
 

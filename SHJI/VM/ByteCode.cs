@@ -6,9 +6,13 @@ using System.Threading.Tasks;
 
 namespace SHJI.VM
 {
-    internal class ByteCode(byte[] instructions, IJaneObject[] constants)
+    public class ByteCode(byte[] instructions, IJaneObject[] constants)
     {
-        static Dictionary<OpCode, Definition> definitions = [];
+        public static readonly Dictionary<OpCode, Definition> definitions = new()
+        {
+            {OpCode.Constant, new Definition("Constant", [4]) },
+            {OpCode.Add,  new Definition("Add", [])}
+        };
 
         public static Definition? Lookup(OpCode opCode)
         {
@@ -53,15 +57,15 @@ namespace SHJI.VM
             return (operands, offset);
         }
 
-        private static void WriteLittleEndian(byte[] pointer, int offset, int operand, int width)
+        public static void WriteLittleEndian(byte[] instruction, int offset, int operand, int width)
         {
             for (int i = 0; i < width; i++)
             {
-                pointer[offset + i] = (byte)((operand >> (i * 8)) & 0xFF);
+                instruction[offset + i] = (byte)((operand >> (i * 8)) & 0xFF);
             }
         }
 
-        private static int ReadLittleEndian(byte[] pointer, int width)
+        public static int ReadLittleEndian(byte[] pointer, int width)
         {
             int result = 0;
             for (int i = 0; i < width; i++)
@@ -74,23 +78,21 @@ namespace SHJI.VM
         public static string Stringify(byte[] instructions)
         {
             string result = "";
-            int i = 0;
-            foreach (byte b in instructions)
+            for (int i = 0; i < instructions.Length; i++)
             {
-                Definition? d = Lookup((OpCode)b);
+                Definition? d = Lookup((OpCode)instructions[i]);
                 if (d is null)
                 {
-                    result += $"ERROR: Unknown Opcode {b}\n";
+                    result += $"ERROR: Unknown Opcode {instructions[i]}\n";
                     continue;
                 }
                 Definition def = d.Value;
                 (int[] operands, int offset) = ReadOperands(def, instructions[(i+1)..]);
-                result += $"{i:04} {(
+                result += $"{i:d4} {(
                     def.OperandWidths.Length != operands.Length
                         ? ($"ERROR: operand len {operands.Length} does not match defined {def.OperandWidths.Length}\n")
-                        : $"{def.Name} {operands.Select(s => s.ToString()).Aggregate((a, b) => a + b)}")}\n";
-                result += "\n";
-                i++;
+                        : $"{def.Name} {(operands.Length > 0 ? operands.Select(s => s.ToString()).Aggregate((a, b) => a + b) : "")}")}\n";
+                i += offset;
             }
             return result;
         }
@@ -99,14 +101,16 @@ namespace SHJI.VM
         public IJaneObject[] Constants { get; } = constants;
     }
 
-    internal struct Definition
+    public struct Definition(string name, int[] operandWidths)
     {
-        public string Name;
-        public int[] OperandWidths;
+        public string Name = name;
+        public int[] OperandWidths = operandWidths;
     }
 
-    internal enum OpCode
+    public enum OpCode
     {
-        OpConstant
+        Halt,
+        Constant,
+        Add
     }
 }
