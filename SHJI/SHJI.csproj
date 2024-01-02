@@ -5,7 +5,14 @@
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <ApplicationIcon>favicon.ico</ApplicationIcon>
+    <StartupObject>SHJI.Program</StartupObject>
+    <AssemblyVersion>0.0.3.0</AssemblyVersion>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Content Include="favicon.ico" />
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Core\Core.csproj" />
@@ -13,6 +20,10 @@
 
   <ItemGroup>
     <Folder Include="Interpreter\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="JOHNCS" Version="1.0.0" />
   </ItemGroup>
 
 </Project>
