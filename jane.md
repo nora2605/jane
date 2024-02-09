@@ -5,7 +5,7 @@
 ## Infrastructure
 
 - jane: Language Definition
-- john: Jane Object and Heap Notation [See here](./john.md)
+- john: Jane Object Hierarchy Notation [See here](./john.md)
 - eric: Extensions and Related Integrations CommandLine; eric i package
 - shjc: Schleswig Holstein jane compiler
 - shji: Schleswig Holstein jane interpreter

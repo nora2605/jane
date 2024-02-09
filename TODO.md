@@ -17,6 +17,10 @@ Language Frontend and Core Library (JaneCore) (Lexer, Parser, AST, VM)
 Interpreter/REPL (SHJI)
 Compiler (SHJC)
 
+* Structure/STDLIB
+	* Jane.ValueType and Jane.ReferenceType
+	* 
+* enum -f (flags)
 * Operators:
 	* Switcheroo operator: switches a bool from true to false or false to true (postfix !!)
 	* Modulo
@@ -27,11 +31,18 @@ Compiler (SHJC)
 	* Range Operator
 * Type Parsing:
 	* Number suffixes
-* WHAT THE FUCK IS A FUNCTION TYPE EXPRESSION
+* WHAT THE FUCK IS A FUNCTION TYPE EXPRESSION (Fn<int, int -> int> for example)
 * Generics
 * currying operator?
 * generator (yield)
+* ordered structs/enums/unions for memory stuff or byte[] file encodings idfk
+* Constants namespaces
+* [https://doc.rust-lang.org/reference/items/generics.html] in Bezug auf Vektoren und Lineare Algebra
 * type aliasing
+* Event class
+	* .Subscribe() 
+	* .Invoke()
+	* generally just mirror c# here, but do it with `let a: Event = new()` or `let b: Event<obj, string> = new()`
 * https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/operators/patterns
 
 
