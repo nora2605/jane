@@ -2,7 +2,7 @@
 
 ![John Logo](./johnlogo.svg)
 
-This is the Jane Object and Heap Notation Standard
+This is the Jane Object Hierarchy Notation Standard
 
 ## First glance
 
@@ -40,16 +40,18 @@ So as you see, John supports the following cool epic awesome features:
 + objects and nesting
 + arrays
 + tuples
-+ heaps (just as nested linked lists though... it's just there because of the name)
++ hashes (array of tuples lol)
 + typing (see below)
 
-Minimized JOHN does not require any newlines.
+Minimized JOHN does not require any newlines, commas or semicolons.
+
+The Seperator can be whatever you want (semicolon, comma, space, all of it acts as a token break)
 
 ## Typing
 
 JOHN supports the following types and primitives:
 
-| Type name | Jane equivalent   | JOHN declaration      | javacript equivalent  |
+| Type name | Jane equivalent   | JOHN declaration      | javascript equivalent  |
 | -         | -                 | -                     | -                     |
 | string    | :str              | "string"              | "string"              |
 | char      | :chr              | 'c'                   | "c"                   |
@@ -64,12 +66,11 @@ JOHN supports the following types and primitives:
 | ulong     | :u64              |18446744073709551615u64| 18446744073709551615  |
 | float     | :f32              | 15.0 or 15f32         | 15                    |
 | double    | :f64              | 15.4f64               | 15.4                  |
-| version   | :Jane.Tuples.vrs  | v1.2.3.4              | `{"major": 1, "minor": 2, "patch": 3, "build": 4}` |
+| version   | :Jane.vrs  | v1.2.3.4              | `{"major": 1, "minor": 2, "patch": 3, "build": 4}` |
 | index     | :Jane.idx         | \*1 or ^1              | 1 or -1               |
 | range     | :Jane.rng         | 1..3                  | \[1,2\]               |
 | tuple     | :(T1, T2)         | ("123" 123)           | \["123", 123\]        |
-| link list | :Jane.LList       | -> "123" "234"        | `{"value": 123, "next": &{"value": "234". "next": null}}` |
-| circ llist| :Jane.CircularLList| -> "123" "234" ->    | `{"value": 123, "next": &{"value": "234", "next": &this}}` |
+| linked list (obsolete) | :Jane.LList       | -> "123" "234"        | `{"value": 123, "next": &{"value": "234". "next": null}}` |
 
 ## Implementations
 
