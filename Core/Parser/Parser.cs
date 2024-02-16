@@ -68,7 +68,7 @@ namespace Jane.Parser
             errors = [];
 
             UnaryParseFns = new()
-            { 
+            {
                 { TokenType.IDENT, ParseIdentifier },
                 { TokenType.ABYSS, ParseAbyss },
                 { TokenType.INT, ParseIntegerLiteral },
@@ -132,7 +132,7 @@ namespace Jane.Parser
             {
                 IStatement? statement = ParseStatement();
                 if (statement is not null)
-                statements.Add(statement);
+                    statements.Add(statement);
                 NextToken();
             }
             program.statements = [.. statements];
@@ -142,7 +142,7 @@ namespace Jane.Parser
         IStatement? ParseStatement()
         {
             while (CurTokenIs(TokenType.SEMICOLON) || CurTokenIs(TokenType.EOL)) NextToken();
-            var statement =  curToken.Type switch
+            var statement = curToken.Type switch
             {
                 TokenType.RETURN => ParseReturnStatement(),
                 TokenType.FUNCTION => ParseFunctionLiteral(),
@@ -278,7 +278,8 @@ namespace Jane.Parser
                 NextToken();
                 return [];
             }
-            do {
+            do
+            {
                 NextToken();
                 Identifier? ident = ParseIdentifier() as Identifier?;
                 if (ident is null) return null;
@@ -310,7 +311,7 @@ namespace Jane.Parser
         #endregion
 
         #region Parse general Expressions
-        IExpression? ParseExpression(OperatorPrecedence precedence=OperatorPrecedence.LOWEST)
+        IExpression? ParseExpression(OperatorPrecedence precedence = OperatorPrecedence.LOWEST)
         {
             if (!UnaryParseFns.TryGetValue(curToken.Type, out PrefixParseFn? prefix))
             {
@@ -478,7 +479,7 @@ namespace Jane.Parser
             return [.. args];
         }
 
-        // comma seperated
+        // comma separated
         IExpression[]? ParseExpressionList(TokenType end)
         {
             List<IExpression> l = [];
@@ -657,7 +658,7 @@ namespace Jane.Parser
             } while (skipEOL && CurTokenIs(TokenType.EOL));
         }
         bool CurTokenIs(TokenType type) => curToken.Type == type;
-    
+
         bool PeekTokenIs(TokenType type) => peekToken.Type == type;
         bool ExpectPeek(TokenType type)
         {
@@ -667,7 +668,7 @@ namespace Jane.Parser
             }
             else return false;
         }
-        
+
         OperatorPrecedence PeekPrecedence()
         {
             if (priorities.TryGetValue(peekToken.Type, out OperatorPrecedence prec))
@@ -686,7 +687,7 @@ namespace Jane.Parser
             return OperatorPrecedence.LOWEST;
         }
 
-        void PeekError(TokenType expected, ParserErrorType type=ParserErrorType.Unspecified)
+        void PeekError(TokenType expected, ParserErrorType type = ParserErrorType.Unspecified)
         {
             ParserError pe = new($"Expected next token to be {Token.ToString(expected)}, got {Token.ToString(peekToken.Type)} instead.", peekToken, type);
             errors.Add(pe);

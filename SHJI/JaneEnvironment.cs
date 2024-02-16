@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace SHJI.VM
+namespace SHJI
 {
     public class JaneEnvironment
     {

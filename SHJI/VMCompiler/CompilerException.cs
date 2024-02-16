@@ -1,6 +1,6 @@
 ﻿using System.Runtime.Serialization;
 
-namespace SHJI.VM
+namespace SHJI.VMCompiler
 {
     [Serializable]
     internal class CompilerException : Exception

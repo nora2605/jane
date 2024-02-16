@@ -60,7 +60,7 @@ Compiler (SHJC)
 ## Interpreter
 
 * A proper type-system (I have to think about a way I can evaluate operators without hardcoding every number type)
-	* Also Rewrite the ObjectType enum to be a class to support generics, inbuilts, all that
+	* Also Rewrite the ObjectType enum to be a class to support generics, built-ins, all that
 		* That also means there will be no "Jane..." structs anymore, just JaneObject with a specific type that is linked to the standard library
 		* Maybe the primitives have to stay, i don't know
 * External Functions (file use directives)

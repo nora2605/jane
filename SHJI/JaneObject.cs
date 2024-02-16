@@ -1,6 +1,6 @@
 ﻿using Jane.AST;
 
-namespace SHJI.VM
+namespace SHJI
 {
     public interface IJaneObject
     {
@@ -15,15 +15,15 @@ namespace SHJI.VM
         public string? ToString() => Inspect();
     }
 
-    public delegate IJaneObject JaneBuiltinFunction(params IJaneObject[] args);
+    public delegate IJaneObject JaneBuiltInFunction(params IJaneObject[] args);
 
-    public struct JaneBuiltin : IJaneObject
+    public struct JaneBuiltIn : IJaneObject
     {
-        public JaneBuiltinFunction Fn;
-        public readonly ObjectType Type() => ObjectType.Builtin;
+        public JaneBuiltInFunction Fn;
+        public readonly ObjectType Type() => ObjectType.BuiltIn;
         public readonly string Inspect() => $"{Fn}";
 
-        public static implicit operator JaneBuiltin(JaneBuiltinFunction f) => new() { Fn = f };
+        public static implicit operator JaneBuiltIn(JaneBuiltInFunction f) => new() { Fn = f };
     }
 
     public struct JaneArray : IJaneObject
@@ -208,6 +208,6 @@ namespace SHJI.VM
         Struct,
         Interface,
         Class,
-        Builtin
+        BuiltIn
     }
 }
