@@ -44,7 +44,8 @@ Compiler (SHJC)
 	* .Invoke()
 	* generally just mirror c# here, but do it with `let a: Event = new()` or `let b: Event<obj, string> = new()`
 * https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/operators/patterns
-
+* Integer Overflow
+* VM binary format for files/FFI -> Put VM into its own project (rust probably)
 
 ## Parser
 
