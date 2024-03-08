@@ -2,7 +2,7 @@
 Language: Jane
 Author: Nora2605 <nora.ja2605@gmail.com>
 Contributor:
-Website: https://janelang.ml/
+Website: https://jane.luemir.xyz/
 Category: common
 */
 
