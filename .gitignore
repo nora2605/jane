@@ -351,3 +351,6 @@ MigrationBackup/
 
 *.tar
 /Core/res
+
+# Rust
+target/
