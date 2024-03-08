@@ -40,8 +40,8 @@ So as you see, John supports the following cool epic awesome features:
 + objects and nesting
 + arrays
 + tuples
-+ hashes (array of tuples lol)
-+ typing (see below)
++ hashes (array of tuples)
++ basic typing (see below)
 
 Minimized JOHN does not require any newlines, commas or semicolons.
 
@@ -70,9 +70,17 @@ JOHN supports the following types and primitives:
 | index     | :Jane.idx         | \*1 or ^1              | 1 or -1               |
 | range     | :Jane.rng         | 1..3                  | \[1,2\]               |
 | tuple     | :(T1, T2)         | ("123" 123)           | \["123", 123\]        |
-| linked list (obsolete) | :Jane.LList       | -> "123" "234"        | `{"value": 123, "next": &{"value": "234". "next": null}}` |
+| sets      | :Set\<T\>           | {[1 2 3 4 2]}         | \[1 2 3 4\] |
 
 ## Implementations
 
-There is a JOHN Parser for C#: [Nuget Package](https://www.nuget.org/packages/JOHNCS), [Repository](https://github.com/nora2605/JOHNCS)
-and for JS: [NPM Package](https://www.npmjs.com/package/johnjs), [Repository](https://github.com/nora2605/johnjs)
+None of the Reference Implementations are yet complete.
+They do not feature robust parsing and no type safety and no comments.
+They are about as usable as JSON.
+
+Reference JOHN parsers:
+
++ for C#: [Nuget Package](https://www.nuget.org/packages/JOHNCS), [Repository](https://github.com/nora2605/JOHNCS)
++ for JS: [NPM Package](https://www.npmjs.com/package/johnjs), [Repository](https://github.com/nora2605/johnjs)
++ for Haskell: [Repository](https://github.com/nora2605/john.hs)
++ for Rust: [Crate](https://crates.io/crates/johnrs), [Repository](https://github.com/nora2605/JOHNrs)
