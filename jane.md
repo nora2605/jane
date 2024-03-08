@@ -6,11 +6,12 @@
 
 - jane: Language Definition
 - john: Jane Object Hierarchy Notation [See here](./john.md)
-- eric: Extensions and Related Integrations CommandLine; eric i package
-- shjc: Schleswig Holstein jane compiler
-- shji: Schleswig Holstein jane interpreter
+- shjc: Schleswig Holstein jane compiler with LLVM backend
+- shji: Schleswig Holstein jane interpreter with JaneVM backend
+- shjvm: Internal VM to run jane bytecode
+- `jane`: All-in-one command line inspired by bun and go
 
-## Features and stuff i thought about
+## Drafts
 
 - Arrays are Lists and Slices (internal workings are unimportant for end user)
 - physical dimensions for mathematical operations (and casting) (velocity as M*S^-1 and Voltage as E*Q^-1 etc.)
@@ -19,22 +20,16 @@
 - snake_case, camelCase or lowercase for variables
 - UPPERCASE for internal constants
 - return can be omitted at the end of a function
-- syringe operator
 - preprocessor directives
 - Combinators
 - Standard Library class for mathematical terms
 - Standard Library least squares
 - Standard Library equation solver
-- Currying
-- REPL
-- Gleam Expression Blocks
-- extensions Blocks
-- Swift error handling
+- Blocks are Expressions/implicitly called lambdas
 - named arguments
 - () operator for calling stuff
 - spelled out variants for bitwise operations (xor, nxor)
-- try -f if you really wanna fuck around and find out
-- tuple indexing
+- tuple indexing like in rust ig
 
 ## Data Types
 
@@ -52,7 +47,7 @@ Inbuilt:
 - Structs
 - Interfaces
 - Classes
-- Spaces (Not really a type but whatever, same as package/namespace in other languages)
+- Realms (Not really a type but whatever, same as package/namespace in other languages)
       - Can include (stateless) Functions, Classes, Structs, Enums, and Compile-Time Constants
 - Tuples
 - Arrays
@@ -60,12 +55,14 @@ Inbuilt:
 
 ## IO
 
-- The IO space contains methods directly for doing stuff with Files, Streams, all that
+- The IO realm contains methods directly for doing stuff with Files, Streams, all that
 - Standard Library contains Console IO in the Tty Class
 
 ## Example Programs
 
-### **Hello world something like**
+**Note**: These Examples are conceptual/hypothetical and do not represent the current state of the language.
+
+### **Hello world but i really like OOP**
 
 ```jane
 fn -s Main(args: str[]) -> i32 {
@@ -80,6 +77,20 @@ fn -s Main(args: str[]) -> i32 {
 Tty.WriteLn("Hello World!");
 ```
 
+**Note**: Thinking about aliasing Tty.WriteLn to println for most contexts.
+
+### **Implicit Return**
+
+```jane
+// When a function has a return type, the last expressionStatement (if not a return) will be used as return value.
+
+// This is not possible if no return type is given in the function definition, that type can only be inferred when a return is present in the code
+
+fn add(a: i32, b: i32) {
+    a + b // Does nothing
+}
+```
+
 ### **Inline Array declaration**
 
 ```jane
@@ -91,8 +102,7 @@ Tty.WriteLn("Hello World!");
 ### **Inline Dictionary/Map declaration**
 
 ```jane
-{"key1": "value1", "key2": "value2", "key3": "value3"}
-// As long as type can be inferred
+{{"key1": "value1", "key2": "value2", "key3": "value3"}}
 ```
 
 ### **Inline Object declaration**
@@ -101,11 +111,17 @@ Tty.WriteLn("Hello World!");
 {ident "value" ident2 ["nested stuff", "is also", "supported"]}
 ```
 
+### **Sets! (who doesn't love mathy stuff)**
+
+```jane
+{[1, 2, 3, 4, 5, 6, 2, 3, 4, 1, 2, 2, 2]}
+// It's the same as {[1, 2, 3, 4, 5, 6]} 
+```
+
 ### **Inline variable declaration**
 
 ```jane
-// let -i: inline, a normal let returns abyss
-if ((let -i foo = long.expensive.function) + 1 > something) {
+if ((let foo = long.expensive.function) + 1 > something) {
     Tty.WriteLn(foo); // this avoids evaluation the function again and declares it inline nicely
 }
 ```
@@ -113,7 +129,6 @@ if ((let -i foo = long.expensive.function) + 1 > something) {
 ### **Closures/Anonymous functions:**
 
 ```jane
-file use Jane
 file class Program
 
 fn -s Main() -> i32 {
@@ -139,7 +154,17 @@ fn -s AddHandler(type: str, handler: Fn(i32) -> abyss) {
 ### **Currying**
 
 ```jane
-// gotta need a good way to do this
+fn add(a: i32, b: i32) -> i32 {
+    a + b
+}
+/* With a haskell like syntax, currying is performed with the
+ * Curry operator $
+ * Like in Haskell, without lambda workarounds, this shorthand
+ * Only works for the first arguments
+ */
+let add2: Fn(i32) -> i32 = add$2
+
+add2(3) // >>> 5
 ```
 
 ### **When you dereference a non primitive type it will be a reference and not a copy**
@@ -149,7 +174,7 @@ goo = {foo "bar" goo "gaa"};
 let goo2 = copy goo; // Makes a shallow copy
 goo2.foo = "nya";
 
-print(JOHN.serialize(cum) ~ "\n" ~ JOHN.serialize(penis));
+print(JOHN.serialize(goo) ~ "\n" ~ JOHN.serialize(goo2));
 
 /*
 {
@@ -162,6 +187,8 @@ print(JOHN.serialize(cum) ~ "\n" ~ JOHN.serialize(penis));
 }
 */
 ```
+
+**Note**: This might be overridable using -oO.
 
 ### **Use the ref or copy keyword (basically ref = pointer) to pass references/clones instead**
 
@@ -188,6 +215,12 @@ fn -s Main() {
 
 }
 
+// Other decorators will include:
+// Debug Symbols
+// Cache Line optimizations
+// Loop Unwrap
+// Compile-Time macros
+// ...
 
 ```
 
@@ -273,6 +306,20 @@ class Person {
 }
 ```
 
+### **The Constructor**
+
+```jane
+// Instead of repeating the type name the constructor
+// Is defined using a special function flag -C
+
+fn -C() {
+    // Inside the Constructor, the Object might not have a valid state
+    // Only stateless functions are permitted to run until all fields that need to have been initialized.
+    // These typically include only non-primitives without a default
+    // that haven't been initialized in top-level
+}
+```
+
 ### **Type coalescion and pattern matching**
 
 ```jane
@@ -336,7 +383,95 @@ x ==& y // Checks for a binary flag x on y (basically)
 "abc" iso str // true
 [1,2,3] in [1,3,2,4] // false
 // => need to represent sets
-[[1,2,3]] == [[3,1,2]] // true
+{[1,2,3]} == {[3,1,2]} // true
 // => use for double curlies?
 {{1: "hi", 2: "luci"}} // [Map<i32, str>]
+```
+
+### **Error handling**
+
+```jane
+fn -ps readFile(path: str) -> str {
+    let stream = open(path, "r")
+    // Error: Result<Stream, Error> does not have the method readToEnd()
+    stream.readToEnd()
+}
+
+fn -ps readFile(path: str) -> str {
+    // Error: Bubbling up not allowed in non-throwing function
+    let stream = try open(path, "r")
+    stream.readToEnd()
+}
+
+// Do this instead (-t = --throws)
+fn -ps -t readFile(path: str) -> str {
+    let stream = try open(path, "r")
+    stream.readToEnd()
+}
+
+// If you're sure, you can force an unwrap of a throwing function
+fn -ps readFile(path: str) -> str {
+    let stream = open(path, "r")! // danger zone!
+    stream.readToEnd()
+}
+
+// If you're unsure, you can catch with different flags
+fn -pst readFile(path: str) -> str {
+    // print error to stderr and bubble up
+    let stream = try -p open(path, "r")
+    
+    // discard error and treat as abyssable
+    let stream = try -d open(path, "r")
+}
+
+// Try/Catch Blocks
+fn -ps readFile(path: str) -> str {
+    // when error handling, you might want to be inside a block where multiple things can fail:
+    try {
+        let stream = open(path, "r")
+        let result = UTF8.fromBytes(stream)
+        return result
+    } catch (FileNotFound) {
+        Tty.WriteLn("didn't find file :(")
+    } catch (InvalidUTF8) {
+        Tty.WriteLn("that seems to be some binary ahh")
+    } finally {
+        return "";
+    }
+}
+
+// You can use the same modifiers here, and also just panic on catch:
+fn -ps readFile(path: str) -> str {
+    // -f forces an unwrap when there is no return value (like in a block)
+    try -f {
+        ...
+    }
+}
+```
+
+### **Bake IO**
+
+```jane
+// If you want to embed a file at compile time, whether it be a config, audio, image or script file, you can use the IO.embed function
+// By using the constant switch on the let, you enable the variable to be defined at compile time
+// In interpreted mode, the file will be read JIT
+
+let -c sfx: Buffer = embed("./sfx1.wav")
+
+// The difference between embed and read is that embed is marked as stateless to the compiler while read is not, because at runtime the filesystem is obviously mutable
+```
+
+### **Unwrap Abyssables**
+
+```jane
+let foo: i32? = 20
+if something() {
+    foo = abyss
+}
+
+// if you're sure something() didn't happen and the compiler isn't
+// you can force to unwrap the optional and panic if it's abyss
+// use a postfix ! for that
+
+let bar: i32 = foo!
 ```
