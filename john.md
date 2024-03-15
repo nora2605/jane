@@ -72,6 +72,16 @@ JOHN supports the following types and primitives:
 | tuple     | :(T1, T2)         | ("123" 123)           | \["123", 123\]        |
 | sets      | :Set\<T\>           | {[1 2 3 4 2]}         | \[1 2 3 4\] |
 
+## Future
+
+JOHN wants to be concise and short for all sorts of purposes. Feature Goals:
+
++ Timestamp
++ Time range
++ extended semantic versioning
++ memory size
++ nodes (xml, html)
+
 ## Implementations
 
 None of the Reference Implementations are yet complete.
@@ -81,6 +91,6 @@ They are about as usable as JSON.
 Reference JOHN parsers:
 
 + for C#: [Nuget Package](https://www.nuget.org/packages/JOHNCS), [Repository](https://github.com/nora2605/JOHNCS)
-+ for JS: [NPM Package](https://www.npmjs.com/package/johnjs), [Repository](https://github.com/nora2605/johnjs)
++ for JS (parses to native structures): [NPM Package](https://www.npmjs.com/package/johnjs), [Repository](https://github.com/nora2605/johnjs)
 + for Haskell: [Repository](https://github.com/nora2605/john.hs)
 + for Rust: [Crate](https://crates.io/crates/johnrs), [Repository](https://github.com/nora2605/JOHNrs)
