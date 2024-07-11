@@ -399,7 +399,7 @@ Nodes should parse as objects with 3 properties: type, attributes and children. 
 
 Annotations in JOHN are non-data directives, that can tell a parser how to interpret data. The following annotations are given by the spec:
 
-* `@as_dict` parses an object as a dictionary or map.
+* `@as_dict` parses an object as a dictionary or map. Used inbetween value and key or at the very top of the file.
 * `@schema()` - see [Schemas](#schemas)
 * `@mini` (top-level only) signifies that a file can be parsed with reduced feature set (must be the only annotation)
 
@@ -517,4 +517,79 @@ Since this is, of course, part of the Jane Project, its standard library will ha
 first_name "Max"
 last_name "Mustermann"
 age 28
+```
+
+### A very complicated person object that should have all features in it
+
+```john
+first_name "Max"
+last_name "Mustermann"
+age 0x407A4B0A3D70A3D7r
+_favorite_character_of_the_alphabet 'h'
+friends [
+    "Erika",
+    "Hans",
+    "Gustav",
+]
+info @as_dict {
+    address "Musterstraße 123",
+    city "Musterstadt",
+    zip 12345,
+}
+sizes (1.75, 70f)
+friends_in_no_particular_order {[
+    "Hans",
+    "Hans";
+    "Gustav"
+    "Erika"
+]}
+his_favorite_word_translations {{
+    "Hello": "Hallo",
+    "Goodbye": "Auf Wiedersehen",
+    "Thank you": "Danke",
+    "Please": "Bitte",
+}}
+his_passwords_indexed__into_a_useless_map_by_weird_arrays {{
+    [1, 2]: "password1",
+    [1, 3]: "password2",
+    [1, 4]: "password3",
+}}
+comment // this is a comment
+    "this is not a comment" // this is also a comment
+
+a_node_for_some_reason | div class "m-2 py-4 bg-gray-100 rounded-lg" | "hello!"
+his_favorite_dates [
+    18:00:35
+    1970-01-01
+    2019-11-15T13:34:22
+    2024-07-11T01:42:53
+    2007-08-31T16:47+00:00
+    2007-12-24T18:21Z
+    2009-01-01T12:00:00+01:00
+    2009-06-30T18:30:00+02:00
+    2010-01-01T12:00:00.001+02:00
+]
+his_favorite_time_intervals [
+    P3Y6M4DT12H30M17S
+    P1D
+    PT24H
+    P14W
+]
+
+index_of_his_favorite_array_element *1
+index_of_his_least_favorite_array_element ^1
+human_os_version v1.2.3-rc2
+max_version v0.0.0.1
+
+random_ranges_lol [
+    1..2 // inclusive integer range from 1 to 2
+    0..10 // inclusive integer range from 0 to 10
+    0..9..0.5 // inclusive floating point range from 0 to 9 with step size .5
+    0..^10..1 // end-exclusive integer range from 0 to 10 (0 to 9)
+    ^0..^8..0.01 // start and end exclusive floating point range from 0 to 8 with step 0.01 (0.01 to 7.99)
+]
+
+hard_drive_storage 1TiB
+non_existent_thing #
+other_non_existent_thing abyss
 ```
