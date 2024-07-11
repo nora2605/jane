@@ -166,7 +166,7 @@ Every syntactical construct except for comments and annotations may be used as a
 
 ### Integer
 
-In JOHN, the Integer type is a string of characters matching one of the following Regular Expressions: `-?[0-9_]+(e[0-9]+)?`, `-?0x[0-9abcdefABCDEF]+`, `-?0b[01]+`, `-?0o[01234567]+`.
+In JOHN, the Integer type is a string of characters matching one of the following Regular Expressions: `-?[0-9_]+(e[0-9]+)?`, `-?0x[0-9a-fA-F]+`, `-?0b[01]+`, `-?0o[01234567]+`.
 
 These represent decimal, hexadecimal, octal and binary numbers.
 
@@ -176,11 +176,11 @@ The type of integer in the host language that these values should be parsed at (
 
 ### Floating Point Number
 
-In JOHN a floating point number is represented by a string of characters matching one of the regular expressions `-?([0-9]+f|[0-9]*\.[0-9]+(e-?[0-9]+)?f?)`, `0x([0-9abcdef]{8}){1,2}[rR]`.
+In JOHN a floating point number is represented by a string of characters matching one of the regular expressions `-?(\d+f|\d+e-\d+|\d*\.\d+(e-?[0-9]+)?f?)`, `0x([0-9a-fA-F]{8}){1,2}[rR]`.
 
 Note that this does not include region specific notation: a comma is NOT accepted as a decimal point.
 
-The hexadecimal notation is supposed to be interpreted as a binary representation for the IEEE 754 32- or 64-bit floating point format. It is suffixed with an `r` or `R`, for "real" or "rational", whatever makes more sense in your head.
+The hexadecimal notation is supposed to be interpreted as a binary representation for the IEEE 754 32- or 64-bit floating point format. It is suffixed with an `r` or `R`, for "real" or "rational", whatever makes more sense in your head. The bytes are in the usual order (big-endian in js dataview).
 
 Examples:
 
@@ -293,7 +293,6 @@ A datetime in JOHN is an ISO 8601 Date, Time or combined Datetime string. Exampl
 2024-07-11T01:42:53
 2007-08-31T16:47+00:00
 2007-12-24T18:21Z
-2008-02-01T09:00:22+05
 2009-01-01T12:00:00+01:00
 2009-06-30T18:30:00+02:00
 2010-01-01T12:00:00.001+02:00
@@ -304,6 +303,10 @@ A datetime in JOHN is an ISO 8601 Date, Time or combined Datetime string. Exampl
 #### Implementation note - Datetime
 
 Usually languages carry a Datetime library around with them. If they do not, parsing these might be a very difficult task, use a string instead and let the end user invoke a library on it to stay dependency-free.
+
+The JavaScript reference implementation uses `Date.parse` which returns millis after epoch.
+
+Additionally, a timestring carries token breaks. Be careful to handle these.
 
 ### Time Interval
 
@@ -319,6 +322,8 @@ P14W
 #### Implementation note - Time interval
 
 See essentially [Implementation note - Datetime](#implementation-note---datetime)
+
+The JavaScript reference implementation uses an object containing keys corresponding to every time unit as to be adaptable to different length months and leap years.
 
 ### Information Unit
 
@@ -353,11 +358,11 @@ This value type is to be parsed as a number of bits in a 64-bit integer. If type
 Nodes are Objects of certain type, with Attributes and children. This is the common datatype in XML and HTML. In JOHN, Nodes are structured like this:
 
 ```john
-<type> | <attribute_key> <attribute_value> <...> | [
+| <type> <attribute_key> <attribute_value> <...> | [
     <children...>
 ]
 // or
-<type> | <attribute_key> <attribute_value <...> | <content>
+| <type> <attribute_key> <attribute_value <...> | <content>
 ```
 
 For readable Markup, it is recommended to use the [Token break characters](#token-break). Here is a comparison of HTML to (opinionated) JOHN:
@@ -375,22 +380,20 @@ For readable Markup, it is recommended to use the [Token break characters](#toke
 ```
 
 ```john
-doctype: "html"
-html || [
-    head || [
-        title || "Hello World!"
+doctype "html"
+dom |html| [
+    |head| [
+        |title| "Hello World!"
     ]
-    body || [
-        h1 |id: "heading1"| "Heading 1"
+    |body| [
+        |h1 id="heading1"| "Heading 1"
     ]
 ]
 ```
 
-Nodes are not subject to unique-key constraints.
-
 #### Implementation note - Nodes
 
-Nodes should essentially create a virtual DOM: In Javascript this notation may be used to write something similar to JSX.
+Nodes should parse as objects with 3 properties: type, attributes and children. In Javascript they parse as `JSX.Element`s.
 
 ### Annotations
 
@@ -398,28 +401,13 @@ Annotations in JOHN are non-data directives, that can tell a parser how to inter
 
 * `@as_dict` parses an object as a dictionary or map.
 * `@schema()` - see [Schemas](#schemas)
-* `@mini` (top-level only) signifies that a file should be parsed with reduced feature set (must be the only annotation)
-* `@new()`, `@name()`, `@point()` - see [Pointers and references](#pointers-and-references)
+* `@mini` (top-level only) signifies that a file can be parsed with reduced feature set (must be the only annotation)
 
 Other annotations may be freely declared by implementations to handle language specificities.
 
 #### Implementation note
 
 When serializing to JOHN, global annotations should be specified in the Serializer Options. There is no spec for handling Pointer or element-specific annotations, since those features are mainly for the data seeding use case.
-
-### Pointers and references
-
-For 2 keys to point to the same value is not possible in most data notation standards. In JOHN objects can be named in the file and pointed to, no matter the definition order.
-
-The `@new(<name>)` annotation may only be used in top-level and marks a named top-level object.
-
-The `@name(<name>)` annotation names the following value.
-
-The `@point(<name>)` is then a reference to the name.
-
-The `<name>` in all 3 of these is constrained to the same values that the [JOHN Object](#object) Key can take.
-
-For an example of this see [Cyclic Graph](#a-cyclic-graph) and [Relations](#relations).
 
 ### Token Break
 
@@ -428,9 +416,11 @@ The following characters are token breaks:
 
 * The space
 * The newline (CRLF or LF)
+* The tab
 * The semicolon
 * The colon
 * The comma
+* The equals sign
 
 The following tokens do not require any token breaks around them:
 
@@ -501,7 +491,7 @@ next @point(node)
 
 ## JOHNmini
 
-JOHN defines a subset of itself as JOHNmini, that doesn't support Schemas, Annotations, pointer references, non-primitive types (indices, versions, timestamps and -intervals), nodes, sets, dictionaries and comments.
+JOHN defines a subset of itself as JOHNmini, that doesn't support Schemas, Annotations, non-primitive types (indices, versions, timestamps and -intervals), nodes, sets, dictionaries and comments.
 
 JOHNmini is therefore an analogue to JSON, with a more minimal syntax that is more lenient.
 
@@ -527,63 +517,4 @@ Since this is, of course, part of the Jane Project, its standard library will ha
 first_name "Max"
 last_name "Mustermann"
 age 28
-```
-
-### A cyclic graph
-
-```john
-@name(node1) // this is the object that is returned on parse
-value 1
-edges [
-    @point(node2)
-]
-
-@new(node2)
-value 2
-edges [
-    @point(node3)
-]
-
-@new(node3)
-value 3
-edges [
-    @point(node1)
-]
-```
-
-#### Relations
-
-```john
-@name(little_john)
-name "little john"
-age 25
-friends [
-    @name(david)
-    {
-        name "david"
-        age 25
-        friends [
-            @point(little_john)
-        ]
-    }
-]
-
-@new(galvanized_square_steel)
-name "Galvanized Square Steel"
-age 10000
-friends [
-    @point(little_john)
-    @point(david)
-]
-```
-
-#### Schema for Example [Relations](#relations)
-
-```john
-@name(person)
-name "string"
-age "integer"
-friends [
-    @point(person)
-]
 ```
