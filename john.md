@@ -234,8 +234,8 @@ A range matches the Regular Expression `(\^?-?[0-9]+(\.[0-9]+)?)\.\.(\^?-?[0-9]+
 This feature is very specific to Jane. Other languages may parse this as one of the following:
 
 * A custom type `JOHNRange`
-* A tuple
-* A precomputed array (recommended)
+* An object with `start`, `end`, `step`, `start_exclusive` and `end_exclusive` (recommended)
+* A precomputed array
 
 ### Version
 
@@ -263,7 +263,7 @@ If your host language does not have a version type it may be parsed the followin
 
 ### String
 
-A string in JOHN is a sequence of characters enclosed by double quotation marks `"`. Double quotation marks as well as special characters are escapable using the backslash character `\`, as well as the backslash itself. The string may not contain an unescpaped control character, including a newline. The string should(!) be UTF-8 encoded and parsed as such if possible.
+A string in JOHN is a sequence of characters enclosed by double quotation marks `"`. Double quotation marks as well as special characters are escapable using the backslash character `\`, as well as the backslash itself (C99 escape sequences). The string may not contain an unescpaped control character, including a newline. The string should(!) be UTF-8 encoded and parsed as such if possible.
 
 ### Character
 
@@ -303,8 +303,6 @@ A datetime in JOHN is an ISO 8601 Date, Time or combined Datetime string. Exampl
 #### Implementation note - Datetime
 
 Usually languages carry a Datetime library around with them. If they do not, parsing these might be a very difficult task, use a string instead and let the end user invoke a library on it to stay dependency-free.
-
-The JavaScript reference implementation uses `Date.parse` which returns millis after epoch.
 
 Additionally, a timestring carries token breaks. Be careful to handle these.
 
