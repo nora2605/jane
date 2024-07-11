@@ -7,15 +7,14 @@ SHJI/C stands for Schleswig-Holstein Jane Interpreter/Compiler, which is a penda
 ## Folders
 
 - `Core` contains the Jane Language Frontend
-- `SHJC` contains the Compiler to LLVM
+- `SHJC` will contain the Compiler to LLVM
 - `SHJI` contains the Interpreter, VM and Standard Library (for now?)
 
 ## Jane
 
 <img src="./janelogo.svg" width="256" height="256" alt="Jane Logo" />
 
-See [The Jane feature goals](./jane.md)
-and [Jane by example](https://github.com/nora2605/jane-by-example)
+See [The Jane feature goals](./jane.md) and the [Website](https://jane.luemir.xyz/)
 
 ## John
 

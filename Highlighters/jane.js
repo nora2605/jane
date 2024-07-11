@@ -11,7 +11,7 @@ export default function Jane(hljs) {
     const BUILT_IN_KEYWORDS = [
         "bool",
         "u8",
-        "chr",
+        "char",
         "double",
         "enum",
         "f32",
@@ -38,8 +38,7 @@ export default function Jane(hljs) {
     ];
     const NORMAL_KEYWORDS = [
         "file",
-        "as",
-        "base",
+        "mom",
         "break",
         "case",
         "catch",
@@ -63,7 +62,7 @@ export default function Jane(hljs) {
         "struct",
         "switch",
         "me",
-        "throw",
+        "fire",
         "try",
         "type",
         "typeof",
@@ -71,8 +70,7 @@ export default function Jane(hljs) {
     ];
     const CONTEXTUAL_KEYWORDS = [
         "alias",
-        "async",
-        "await",
+        "lazy",
         "from",
         "get",
         "import",
@@ -211,7 +209,6 @@ export default function Jane(hljs) {
             "jane",
         ],
         keywords: KEYWORDS,
-        illegal: /::/,
         contains: [
             hljs.COMMENT(
                 "///",
@@ -238,15 +235,6 @@ export default function Jane(hljs) {
             ),
             hljs.C_LINE_COMMENT_MODE,
             hljs.C_BLOCK_COMMENT_MODE,
-            {
-                className: "meta",
-                begin: "#",
-                end: "$",
-                keywords: {
-                    keyword:
-                        "if else elif endif define undef warning error line region endregion pragma checksum",
-                },
-            },
             STRING,
             NUMBERS,
             {
@@ -262,7 +250,7 @@ export default function Jane(hljs) {
                 ],
             },
             {
-                beginKeywords: "namespace",
+                beginKeywords: "realm",
                 relevance: 0,
                 end: /[{;=]/,
                 illegal: /[^\s:]/,
@@ -273,24 +261,9 @@ export default function Jane(hljs) {
                 ],
             },
             {
-                // [Attributes("")]
-                className: "meta",
-                begin: "^\\s*\\[(?=[\\w])",
-                excludeBegin: true,
-                end: "\\]",
-                excludeEnd: true,
-                contains: [
-                    {
-                        className: "string",
-                        begin: /"/,
-                        end: /"/,
-                    },
-                ],
-            },
-            {
                 // Expression keywords prevent 'keyword Name(...)' from being
                 // recognized as a function definition
-                beginKeywords: "new return throw await else",
+                beginKeywords: "new return fire await else",
                 relevance: 0,
             },
             {
