@@ -2,6 +2,8 @@
 
 <img src="./johnlogo.svg" width="256" height="256" alt="John Logo" />
 
+The capitalization "JOHN" is preferred in this document but "John" is also acceptable.
+
 This is the Jane Object Hierarchy Notation Standard Document Version 1.
 
 ## Syntax
@@ -42,7 +44,7 @@ Example:
 
 ```john
 // This is a single-line comment
-<john code> // This is also a single-line comment
+<JOHN code> // This is also a single-line comment
 ```
 
 C-Style multi-line comments are not supported.
@@ -439,8 +441,63 @@ The following tokens do not require any token breaks around them:
 * The left curly brace
 * The right curly brace
 * The hashtag
+* The middle bar
 
 ## Schemas
+
+Schemas in JOHN may be defined as JOHN and included via the `@schema(<filename>)` annotation. In Schemas, string values contain a primitive JOHN Value Type. These are the type strings:
+
+```john
+a_string            "string"
+a_character         "char"
+an_integer          "integer"
+a_floating_point    "float"
+a_boolean           "bool"
+an_index            "index"
+a_range             "range"
+a_version           "version"
+abyssable_string    "string?" // or anything else
+a_datetime          "datetime"
+a_time_interval     "interval"
+an_info_unit        "size"
+an_unspecified_val  "any"
+```
+
+And objects, arrays, tuples, sets, dictionaries and nodes are type-defined like so:
+
+```john
+an_object {
+    <key> <type>
+    <...>
+}
+an_array [
+    <type> // just one
+]
+a_tuple (
+    <type> <type> <type> <...>
+)
+a_set {[
+    <type> // just one
+]}
+a_dictionary {{
+    <key_type> <value_type> // just one
+}}
+a_node | <key> <type> <...> | [
+    <type> // just one (like array)
+]
+```
+
+A schema does not allow values to be left out. If they're not required they should be marked as abyssable (see above). For generic use of the object, array, tuple, set, dictionary and node types one may specify `"object"`, `"array"`, `"tuple"`, `"set"`, `"dictionary"` or `"node"` as types.
+
+If multiple types are allowed, a union type can be constructed using `|` inside the type string.
+
+Recursive types may be specified using the Pointer syntax:
+
+```john
+@name(node)
+value "integer"
+next @point(node)
+```
 
 ## JOHNmini
 
@@ -475,7 +532,7 @@ age 28
 ### A cyclic graph
 
 ```john
-@new(node1)
+@name(node1) // this is the object that is returned on parse
 value 1
 edges [
     @point(node2)
@@ -497,7 +554,7 @@ edges [
 #### Relations
 
 ```john
-@new(little_john)
+@name(little_john)
 name "little john"
 age 25
 friends [
@@ -517,5 +574,16 @@ age 10000
 friends [
     @point(little_john)
     @point(david)
+]
+```
+
+#### Schema for Example [Relations](#relations)
+
+```john
+@name(person)
+name "string"
+age "integer"
+friends [
+    @point(person)
 ]
 ```
