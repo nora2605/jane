@@ -1,11 +1,10 @@
-﻿using Jane.Lexer;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Jane.Parser
+namespace Jane.Core
 {
     public class ParserError(string Message, Token ErroneousToken, ParserErrorType Type = ParserErrorType.Unspecified)
     {

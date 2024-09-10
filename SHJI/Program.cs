@@ -1,15 +1,17 @@
-﻿namespace SHJI
+﻿namespace SHJI;
+
+using Jane.Core;
+using VM;
+using Compiler;
+
+class Program
 {
-    internal class Program
+    static void Main(string[] args)
     {
-        [STAThread]
-        static void Main(string[] args)
-        {
-            // Dictionary<string, string> params = ParseArguments(args);
-            // if (params.HasKey("files")) params["files"].Select(x => Interpreter.ExecuteFile(x));
-            // if (params.HasKey("debug"))
-            REPL.Start(parser_debug: true);
-            // else REPL.Start();
-        }
+#if DEBUG
+        new REPL(REPL.REPLLogLevel.DEBUG).Run();
+#else
+        new REPL().Run();
+#endif
     }
 }

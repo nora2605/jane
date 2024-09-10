@@ -1,31 +1,21 @@
-# JaneCore
+# Janelang
 
-This is a C# implementation of the Jane Language.
+This repository contains the Standards for the Jane Language and Jane Object Hierarchy Notation Language as well as the primary Jane implementation.
 
 SHJI/C stands for Schleswig-Holstein Jane Interpreter/Compiler, which is a pendant to the name of the Haskell Compiler which is also named after a geographical location.
 
-## Folders
-
-- `Core` contains the Jane Language Frontend
-- `SHJC` will contain the Compiler to LLVM
-- `SHJI` contains the Interpreter, VM and Standard Library (for now?)
-
 ## Jane
 
-<img src="./janelogo.svg" width="256" height="256" alt="Jane Logo" />
+<img src="./logos/svg/janelogo.svg" width="256" height="256" alt="Jane Logo" />
 
-See [The Jane feature goals](./jane.md) and the [Website](https://jane.luemir.xyz/)
+See [The Jane v0 drafts](./jane.md) and the (now outdated) [Website](https://jane.luemir.xyz/)
 
 ## John
 
-<img src="./johnlogo.svg" width="256" height="256" alt="Jane Logo" />
+<img src="./logos/svg/johnlogo.svg" width="256" height="256" alt="Jane Logo" />
 
-See [The John feature goals](./john.md)
-And a JS parser at [JohnJS](https://github.com/nora2605/johnjs)
-
-## Details
-
-It will eventually be a compiler to JaneVM and act as a complete language frontend; whereas SHJC will then be a compiler to LLVM or .NET IL (or similar) that gets it down to native executables.
+See [The John v1 standard](./john.md)
+And the JS parser at [JohnJS](https://github.com/nora2605/johnjs)
 
 ## Credit
 

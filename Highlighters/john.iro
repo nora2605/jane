@@ -1,0 +1,200 @@
+name                   = john
+file_extensions []     = john;
+
+styles [] {
+   .delimeter : style {
+      textmate_scope = punctuation.delimeter
+      color = #888
+   }
+   .bracket : style {
+      textmate_scope = punctuation.bracket
+      color = #fff
+   }
+   .constant : style {
+      textmate_scope = keyword
+      color = #12e
+   }
+   .string_escape : style {
+      textmate_scope = constant.character.escape
+      color = #f75
+   }
+   .number : style {
+      textmate_scope = constant.numeric
+      color = #bfb
+   }
+   .string : style {
+      textmate_scope = string
+      color = #fa7
+   }
+   .key : style {
+      textmate_scope = entity.other.attribute-name
+      color = #8bf
+   }
+   .comment : style {
+      textmate_scope = comment.line
+      color = #1b2
+   }
+   .annotation : style {
+      textmate_scope = entity.name.function
+      color = #12e
+   }
+}
+
+contexts [] {
+   main : context {
+      # comment
+      : pattern {
+         regex \= (//.*)
+         styles [] = .comment;
+      }
+      # annotations
+      : inline_push {
+         regex \= (@\w+)(\()
+         styles [] = .annotation, .bracket;
+         : pop {
+            regex \= (\))
+            styles [] = .bracket;
+         }
+         : include "args" ;
+      }
+      : pattern {
+         regex \= (@\w+)
+         styles [] = .annotation;
+      }
+      # string, char
+      : inline_push {
+         regex \= (")
+         styles [] = .string;
+         : pop {
+            regex \= (")
+            styles [] = .string;
+         }
+         : include "escapes";
+      }
+      : inline_push {
+         regex \= (')
+         styles [] = .string;
+         : pop {
+            regex \= (')
+            styles [] = .string;
+         }
+         : include "escapes";
+      }
+      # range
+      : pattern {
+         regex \= (\^?-?[0-9]+(?:\.[0-9]+)?\.\.\^?-?[0-9]+(?:\.[0-9]+)?(\.\.\^?-?[0-9]+(?:\.[0-9]+)?)?)
+         styles [] = .number;
+      }
+      # index
+      : pattern {
+         regex \= ((\*\d+)|(\+\d+))
+         styles [] = .number;
+      }
+      # version
+      : pattern {
+         regex \= (v)([0-9]+(?:\.[0-9]+){0,3}-(?:\w+)?)
+         styles [] = .number;
+      }
+      # keywords
+      : pattern {
+         regex \= (true|false|abyss|#)
+         styles [] = .constant;
+      }
+      # datetime
+      : pattern {
+         regex \= ((?:\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?(\.\d+)?(Z|\+\d{2}:\d{2})?)|(?:\d{4}-\d{2}-\d{2})|(?:\d{2}:\d{2}(:\d{2})?(\.\d+)?(Z|\+\d{2}:\d{2})?))
+         styles [] = .number;
+      }
+      # time interval
+      : pattern {
+         regex \= (P(\d+Y)?(\d+M)?(\d+W)?(\d+D)?(T(\d+H)?(\d+M)?(\d+S)?)?)
+         styles [] = .number;
+      }
+      # information unit
+      : pattern {
+         regex \= (\b\d+.{1,2}[b|B]\b)
+         styles [] = .number;
+      }
+      # number
+      : pattern {
+         regex \= (((-?(\d+e-\d+|\d*\.\d+(e-?[0-9]+)?|\d+)f?)|(0x([0-9a-fA-F]{8}){1,2}[rR])|(-?[0-9_]+(e[0-9]+)?)|(-?0x[0-9a-fA-F]+)|(-?0b[01]+)|(-?0o[01234567]+))\b)
+         styles [] = .number;
+      }
+      # key
+      : pattern {
+         regex \= ([_a-zA-Z]\w*)
+         styles [] = .key;
+      }
+      # nested stuff
+      : inline_push {
+         regex \= (\{\[)
+         styles [] = .delimeter;
+         : pop {
+            regex \= (\]\})
+            styles [] = .delimeter;
+         }
+         : include "main" ;
+      }
+      : inline_push {
+         regex \= (\{\{)
+         styles [] = .delimeter;
+         : pop {
+            regex \= (\}\})
+            styles [] = .delimeter;
+         }
+         : include "main" ;
+      }
+      : inline_push {
+         regex \= (\{)
+         styles [] = .delimeter;
+         : pop {
+            regex \= (\})
+            styles [] = .delimeter;
+         }
+         : include "main" ;
+      }
+      : inline_push {
+         regex \= (\[)
+         styles [] = .delimeter;
+         : pop {
+            regex \= (\])
+            styles [] = .delimeter;
+         }
+         : include "main" ;
+      }
+      : inline_push {
+         regex \= (\()
+         styles [] = .delimeter;
+         : pop {
+            regex \= (\))
+            styles [] = .delimeter;
+         }
+         : include "main" ;
+      }
+      # token breaks
+      : pattern {
+         regex \= ([,;:=\s])
+         styles [] = .delimeter;
+      }
+   }
+   args : context {
+      : pattern {
+         regex \= ([,\s])
+         styles [] = .delimeter;
+      }
+      : pattern {
+         regex \= ([\w\.]+)
+         styles [] = .string;
+      }
+   }
+   escapes : context {
+      : pattern {
+         regex \= (\\.)
+         styles [] = .string_escape;
+      }
+      : pattern {
+         regex \= ([^"'\\]+)
+         styles [] = .string;
+      }
+   }
+}

@@ -1,6 +1,6 @@
 # JOHN - Jane Object Hierarchy Notation
 
-<img src="./johnlogo.svg" width="256" height="256" alt="John Logo" />
+<img src="./logos/svg/johnlogo.svg" width="256" height="256" alt="John Logo" />
 
 The capitalization "JOHN" is preferred in this document but "John" is also acceptable.
 
