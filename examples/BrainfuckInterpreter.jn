@@ -1,0 +1,40 @@
+file use Math
+
+class Brainfuck {
+    let -p cells: u8[]
+    let instr_pointer: uint = 0
+    let cell_pointer: uint = 0
+    let stack: uint[] = [];
+
+    fn public constructor(size: uint) {
+        cells = new Array(size, 0)
+    }
+
+    fn public exec(code: str, input?: str) {
+        let output = ""
+        while instr_pointer < code.length {
+            match code[instr_pointer] {
+                '+' => cells[cell_pointer]++
+                '-' => cells[cell_pointer]--
+                '<' => cell_pointer = max(cell_pointer - 1, 0)
+                '>' => cell_pointer = min(cell_pointer + 1, size - 1)
+                ',' => cells[cell_pointer] = input ?? 0
+                '.' => output ~= cells[cell_pointer]::char
+                '[' => stack.push(instr_pointer)
+                ']' => if cells[cell_pointer] != 0 {
+                    instr_pointer = stack.pop(instr_pointer)
+                    continue
+                }
+                _ => {} // ignore other chars
+            }
+            instr_pointer++
+        }
+    }
+}
+
+fn main(args: str[]) {
+    if args.length < 1 { return }
+    let b = new Brainfuck(256)
+    let result = b.exec(args[0])
+    Tty.WriteLn(result);
+}

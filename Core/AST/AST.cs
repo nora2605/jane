@@ -1,32 +1,35 @@
-﻿using Jane.Lexer;
+﻿using System.Linq;
+using System.Numerics;
+using System.Runtime.CompilerServices;
 
-namespace Jane.AST
+namespace Jane.Core
 {
     public struct ASTRoot : IASTNode
     {
-        public IStatement[] statements;
-        public Token Token { get;  set; }
+        public IStatement[] Statements;
+        public Token Token { get; set; }
 
         public override readonly string ToString()
         {
             string output = "";
-            foreach (var s in statements)
+            foreach (var s in Statements)
             {
                 output += s.ToString() + "\n";
             }
 
             return output;
         }
+    }
 
-        public readonly string JOHNSerialize()
-        {
-            string output = "[\n";
-            foreach (var s in statements)
-            {
-                output += "\t" + s.JOHNSerialize() + "\n";
-            }
-            return output + "]";
-        }
+    public struct FunctionDecl : IStatement
+    {
+        public Token Token { get; set; }
+        public Identifier Name;
+        public Identifier[] Args;
+        public Identifier? Type;
+        public BlockStatement Body;
+
+        public override readonly string ToString() => $"fn {Name}({string.Join(", ", Args)}) {(Type == null ? "" : $"-> {Type}")}{Body}";
     }
 
     public struct LetExpression : IExpression
@@ -37,11 +40,20 @@ namespace Jane.AST
         public readonly override string ToString() => $"{Token.Literal} {Name}{(Value is null ? "" : $" = {Value}")}";
     }
 
+    public struct TernaryExpression : IExpression
+    {
+        public Token Token { get; set; }
+        public IExpression Condition;
+        public IExpression If;
+        public IExpression Else;
+        public readonly override string ToString() => $"{Condition} ? {If} : {Else}";
+    }
+
     public struct ArrayLiteral : IExpression
     {
         public Token Token { get; set; }
         public IExpression[] Elements;
-        public readonly override string ToString() => $"[{(Elements.Length == 0 ? "" : Elements.Select(x => x.ToString()).Aggregate((a, b) => $"{a} {b}"))}]";
+        public readonly override string ToString() => $"[{string.Join<IExpression>(" ", Elements)}]";
     }
 
     public struct IndexingExpression : IExpression
@@ -51,17 +63,6 @@ namespace Jane.AST
         public IExpression Index;
 
         public readonly override string ToString() => $"{Indexed}[{Index}]";
-    }
-
-    public struct FunctionLiteral : IStatement
-    {
-        public Token Token { get; set; }
-        public string[] Flags;
-        public string Name;
-        public Identifier[] Parameters;
-        public string ReturnType;
-        public BlockStatement Body;
-        public readonly override string ToString() => $"{Token.Literal} {(Flags.Length == 0 ? "" : Flags.Select(x => x.Length == 1 ? $"-{x} " : $"--{x} ").Aggregate((a, b) => a + b))}{Name}({Parameters.Select(x => x.ToString()).Aggregate((a, b) => $"{a}, {b}")}){(ReturnType is null ? "" : $" -> {ReturnType}")} {Body}";
     }
 
     public struct ReturnStatement : IStatement
@@ -94,50 +95,22 @@ namespace Jane.AST
         public IExpression Function;
         public IExpression[] Arguments;
 
-        public override readonly string ToString() => $"{Function}({Arguments.Select(x => x.ToString()).Aggregate((a, b) => $"{a}, {b}")})";
+        public override readonly string ToString() => $"{Function}({string.Join<IExpression>(", ", Arguments)})";
     }
 
-    public struct IntegerLiteral : IExpression, INumberLiteral
+    public struct IntegerLiteral : IExpression
     {
         public Token Token { get; set; }
-        public int Value;
-        public string? ImmediateCoalescing { get; set; }
-        public override readonly string ToString() => $"{Token.Literal}{(ImmediateCoalescing is null ? "" : ImmediateCoalescing)}";
+        public BigInteger Value;
+        public override readonly string ToString() => $"{Value}";
     }
 
-    // Gets parsed only if the supplied integer is too long
-    // pun not intended
-    public struct LongLiteral : IExpression, INumberLiteral
-    {
-        public Token Token { get; set; }
-        public long Value;
-        public string? ImmediateCoalescing { get; set; }
-        public override readonly string ToString() => $"{Token.Literal}{(ImmediateCoalescing is null ? "" : ImmediateCoalescing)}";
-    }
-
-    public struct Int128Literal : IExpression, INumberLiteral
-    {
-        public Token Token { get; set; }
-        public Int128 Value;
-        public string? ImmediateCoalescing { get; set; }
-        public override readonly string ToString() => $"{Token.Literal}{(ImmediateCoalescing is null ? "" : ImmediateCoalescing)}";
-    }
-
-    public struct UInt128Literal : IExpression, INumberLiteral
-    {
-        public Token Token { get; set; }
-        public UInt128 Value;
-        public string? ImmediateCoalescing { get; set; }
-        public override readonly string ToString() => $"{Token.Literal}{(ImmediateCoalescing is null ? "" : ImmediateCoalescing)}";
-    }
-    // Double by default, can be made into f32 by attaching f or f32
-    public struct FloatLiteral : IExpression, INumberLiteral
+    public struct FloatLiteral : IExpression
     {
         public Token Token { get; set; }
         public double Value;
-        public string? ImmediateCoalescing { get; set; }
 
-        public override readonly string ToString() => $"{Token.Literal}{(ImmediateCoalescing is null ? "" : ImmediateCoalescing)}";
+        public override readonly string ToString() => $"{Value}";
     }
 
     public struct PrefixExpression : IExpression
@@ -165,7 +138,7 @@ namespace Jane.AST
         public override readonly string ToString() => $"({Left}{Operator})";
     }
 
-    public struct Boolean : IExpression
+    public struct BooleanLiteral : IExpression
     {
         public Token Token { get; set; }
         public bool Value;
@@ -176,8 +149,8 @@ namespace Jane.AST
     {
         public Token Token { get; set; }
         public IExpression Condition;
-        public BlockStatement Cons; // If
-        public BlockStatement? Alt; // Else
+        public IStatement Cons; // If
+        public IStatement? Alt; // Else
 
         public override readonly string ToString() => $"if {Condition} {Cons} {(Alt is null ? "" : $"else {Alt}")}";
     }
@@ -190,14 +163,14 @@ namespace Jane.AST
         public override readonly string ToString() => $"{Name} = {Value}";
     }
 
-    public struct ForLoop : IStatement
+    public struct OperatorAssignment : IExpression
     {
         public Token Token { get; set; }
-        public Identifier Iterator;
-        public IExpression Enumerable;
-        public BlockStatement LoopContent;
+        public IExpression Pattern;
+        public string Operator;
+        public IExpression Value;
 
-        public override readonly string ToString() => $"for let {Iterator} in {Enumerable} {LoopContent}";
+        public override readonly string ToString() => $"{Pattern} {Operator}= {Value}";
     }
 
     public struct CharLiteral : IExpression
@@ -207,33 +180,11 @@ namespace Jane.AST
         public override readonly string ToString() => $"'{Value}'";
     }
 
-    public struct RawStringLiteral : IExpression
-    {
-        public Token Token { get; set; }
-        public string EscapedValue;
-
-        public override readonly string ToString() => "raw\"" + EscapedValue + "\"";
-    }
-
-    public struct VerbatimStringLiteral : IExpression
-    {
-        public Token Token { get; set; }
-        public string EscapedValue;
-        public override readonly string ToString() => $"@\"{EscapedValue}\"";
-    }
-
-    public struct InterpolatedVerbatimStringLiteral : IExpression
+    public struct StringLiteral : IExpression
     {
         public Token Token { get; set; }
         public IExpression[] Expressions;
-        public override readonly string ToString() => $"@$\"{(Expressions.Length > 0 ? Expressions.Select(x => x.ToString()).Aggregate((a, b) => a + b) : "")}\"";
-    }
-
-    public struct InterpolatedStringLiteral : IExpression
-    {
-        public Token Token { get; set; }
-        public IExpression[] Expressions;
-        public override readonly string ToString() => $"\"{(Expressions.Length > 0 ? Expressions.Select(x => x.ToString()).Aggregate((a, b) => a + b) : "")}\"";
+        public override readonly string ToString() => $"\"{string.Join<IExpression>("", Expressions)}\"";
     }
 
     public struct StringContent : IExpression
@@ -254,6 +205,5 @@ namespace Jane.AST
     {
         public Token Token { get; set; }
         public override readonly string ToString() => "abyss";
-        readonly string IASTNode.JOHNSerialize() => "#";
     }
 }

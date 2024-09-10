@@ -1,30 +1,11 @@
 # Jane
 
-![Jane Logo](./janelogo.svg)
-
-## Infrastructure
-
-- jane: Language Definition
-- john: Jane Object Hierarchy Notation [See here](./john.md)
-- shjc: Schleswig Holstein jane compiler with LLVM backend
-- shji: Schleswig Holstein jane interpreter with JaneVM backend
-- shjvm: Internal VM to run jane bytecode
-- `jane`: All-in-one command line inspired by bun and go
-
+![Jane Logo](./logos/svg/janelogo.svg)
 ## Drafts
 
 - Arrays are Lists and Slices (internal workings are unimportant for end user)
 - physical dimensions for mathematical operations (and casting) (velocity as M*S^-1 and Voltage as E*Q^-1 etc.)
-- Object oriented ig
-- PascalCase for classes and static functions
-- snake_case, camelCase or lowercase for variables
-- UPPERCASE for internal constants
-- return can be omitted at the end of a function
-- preprocessor directives
-- Combinators
 - Standard Library class for mathematical terms
-- Standard Library least squares
-- Standard Library equation solver
 - Blocks are Expressions/implicitly called lambdas
 - named arguments
 - () operator for calling stuff
@@ -35,10 +16,10 @@
 
 Primitives:
 
-- Signed and unsigned integers from 8 to 128 bits
+- Signed and unsigned integers (64-bit native, 32-bit, 16-bit, 8-bit), BigInts
 - Float32 and 64
 - Strings
-- Characters (UTF-16)
+- Characters (UTF-8)
 
 Inbuilt:
 
@@ -58,9 +39,7 @@ Inbuilt:
 - The IO realm contains methods directly for doing stuff with Files, Streams, all that
 - Standard Library contains Console IO in the Tty Class
 
-## Example Programs
-
-**Note**: These Examples are conceptual/hypothetical and do not represent the current state of the language.
+## Examples that might work for v0.1
 
 ### **Hello world but i really like OOP**
 
@@ -76,8 +55,6 @@ fn -s Main(args: str[]) -> i32 {
 ```jane
 Tty.WriteLn("Hello World!");
 ```
-
-**Note**: Thinking about aliasing Tty.WriteLn to println for most contexts.
 
 ### **Implicit Return**
 
@@ -111,7 +88,7 @@ fn add(a: i32, b: i32) {
 {ident "value" ident2 ["nested stuff", "is also", "supported"]}
 ```
 
-### **Sets! (who doesn't love mathy stuff)**
+### **Sets**
 
 ```jane
 {[1, 2, 3, 4, 5, 6, 2, 3, 4, 1, 2, 2, 2]}
@@ -187,8 +164,6 @@ print(JOHN.serialize(goo) ~ "\n" ~ JOHN.serialize(goo2));
 }
 */
 ```
-
-**Note**: This might be overridable using -oO.
 
 ### **Use the ref or copy keyword (basically ref = pointer) to pass references/clones instead**
 

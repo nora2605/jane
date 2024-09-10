@@ -1,227 +1,243 @@
-﻿using System.Reflection;
-using System.Text.RegularExpressions;
-using Jane.Lexer;
-using Jane.Parser;
-using System.ANSIConsole;
-using Jane.AST;
+﻿using Jane.Core;
+using Microsoft.VisualBasic;
+using SHJI.Bytecode;
+using SHJI.Compiler;
 using SHJI.VM;
-using SHJI.VMCompiler;
-using JOHNCS;
+using System.Collections.Immutable;
+using System.Runtime.Serialization.Formatters.Binary;
+using System.Xml.Serialization;
 
 namespace SHJI
 {
-    internal static partial class REPL
+    internal class REPL
     {
-        static readonly string HEADER = @$"SHJI Version {Assembly.GetExecutingAssembly().GetName().Version}";
-        const string PROMPT = "jn> ";
-        const string CONTINUE = "..> ";
+        private bool ShouldEnd { get; set; }
+        public REPLLogLevel LogLevel { get; set; }
 
-        static bool exiting = false;
-        static bool parserDebug = false;
-        static int nestingLevel = 0;
-        static bool controlKeyPressed = false;
+        private Colorify.Format _colorify;
 
-        public static bool vm = false;
+        private JaneValue[] Constants = [];
+        private SymbolTable SymbolTable = new();
+        private JaneValue[] Globals = new JaneValue[2<<16];
 
-        static string prevInput = "";
-        static readonly JaneEnvironment env = new();
-
-        public static void Start(bool parser_debug = false)
+        public REPL() : this(REPLLogLevel.WARNING) { }
+        public REPL(REPLLogLevel logLevel)
         {
-            parserDebug = parser_debug;
-            Console.WriteLine(HEADER);
-            Console.CancelKeyPress += (sender, e) =>
-            {
-                exiting = true;
-                Console.WriteLine("\nPress Ctrl-C again or Enter to exit the REPL.");
-                Console.Write(PROMPT);
-                e.Cancel = true;
-            };
-            while (!exiting)
+            LogLevel = logLevel;
+            _colorify = new(Colorify.UI.Theme.Dark);
+        }
+
+        public void Run()
+        {
+            Console.CancelKeyPress += Console_CancelKeyPress;
+
+            _colorify.WriteLine(@$"SHJI v0.1");
+
+            while (true)
             {
                 REP();
+                if (ShouldEnd) break;
+            }
+        }
+        void REP()
+        {
+            _colorify.Write("jn> ", Colorify.Colors.txtInfo);
+            string? input = Console.ReadLine();
+            if (input == null)
+            {
+                _colorify.WriteLine("");
+                return;
+            }
+            if (input.StartsWith('.'))
+            {
+                string[] args = input[1..].Split(" ");
+                REPLCommand(args[0], args.Length > 1 ? args[1..] : null);
+                return;
+            }
+
+            Eval(input);
+        }
+
+        void Eval(string input)
+        {
+            Dictionary<string, TimeSpan> stageTimes = [];
+            var startStage = DateTime.Now;
+            var start = startStage;
+            Tokenizer t = new(input);
+            Token[] tokens = [.. t];
+            while (!t.Finished)
+            {
+                _colorify.Write("..> ", Colorify.Colors.txtInfo);
+                string? addit = Console.ReadLine();
+                if (addit == null)
+                {
+                    _colorify.WriteLine("");
+                    break;
+                }
+                input += addit;
+                t = new(input);
+                tokens = [.. t];
+            }
+            Log(
+                "Lexer Output",
+                REPLLogLevel.DEBUG,
+                string.Join(" ", tokens)
+            );
+
+            startStage = DateTime.Now;
+            Parser p = new(tokens);
+            ASTRoot r = p.ParseProgram();
+            stageTimes.Add("Parse", DateTime.Now - startStage);
+            Log(
+                "Parser Output",
+                REPLLogLevel.DEBUG,
+                r.ToString()
+            );
+
+            if (p.Errors.Length > 0)
+            {
+                Log(
+                    "Parser Errors",
+                    REPLLogLevel.ERROR,
+                    string.Join<ParserError>("\n", p.Errors)
+                );
+                return;
+            }
+
+            startStage = DateTime.Now;
+            JaneValue v = JaneValue.Abyss;
+            JnCompiler c = new(SymbolTable, Constants);
+            c.Compile(r);
+            stageTimes.Add("Compile", DateTime.Now - startStage);
+            SymbolTable = c.SymbolTable;
+            Constants = c.Constants;
+            Log("Bytecode", REPLLogLevel.DEBUG, JnBytecode.BCToString(c.Instructions));
+            Log("Heap", REPLLogLevel.DEBUG, string.Join("\n", c.Constants.Select((a, i) => $"{i}: {a.Inspect()}::{a.Type}")));
+
+            if (c.Errors.Length > 0)
+            {
+                Log(
+                    "Compiler Errors",
+                    REPLLogLevel.ERROR,
+                    string.Join<CompilerError>("\n", c.Errors)
+                );
+                return;
+            }
+
+            startStage = DateTime.Now;
+            JnVM vm = new(c.Constants, c.Instructions, Globals);
+            try
+            {
+                vm.Run();
+                Globals = vm.Globals;
+            }
+            catch (Exception e)
+            {
+                Log(e.Message, REPLLogLevel.ERROR);
+                Log($"Errored at Instruction: {vm.Position:0000}", REPLLogLevel.DEBUG);
+                return;
+            }
+            stageTimes.Add("Run", DateTime.Now - startStage);
+            Log("VM Stack", REPLLogLevel.DEBUG, string.Join("\n", vm.Stack.Select(a => a.Inspect())));
+            v = vm.TempReg;
+
+            if (v != JaneValue.Abyss)
+                Log(v.Inspect());
+            else
+                Log("Output was abyss", REPLLogLevel.INFO);
+
+            stageTimes.Add("Total", DateTime.Now - start);
+            Log("Times", REPLLogLevel.DEBUG, string.Join("\n", stageTimes.Select(entry => $"{entry.Key}: {entry.Value}")));
+        }
+
+        void Log(string message, REPLLogLevel logLevel = REPLLogLevel.RESULT, string description = "")
+        {
+            if (logLevel >= LogLevel)
+            {
+                if (logLevel == REPLLogLevel.RESULT)
+                {
+                    _colorify.WriteLine(message, LogLevelColorify[logLevel]);
+                    if (!string.IsNullOrEmpty(description))
+                        _colorify.WriteLine(description, LogLevelColorify[logLevel]);
+                    return;
+                }
+                _colorify.WriteLine($"[{logLevel}] ({DateTime.Now:HH:mm:ss}) {message}", LogLevelColorify[logLevel]);
+                if (!string.IsNullOrEmpty(description))
+                    _colorify.WriteLine(description, LogLevelColorify[logLevel]);
             }
         }
 
-        static void REP()
+        void REPLCommand(string command, string[]? args)
         {
-            if (!controlKeyPressed) Console.Write(PROMPT);
-            string? line = Console.ReadLine();
-            string input = "";
-            if (line is null or "")
+            switch (command)
             {
-                controlKeyPressed = line is null;
-                return;
-            }
-            if (line.StartsWith('.'))
-            {
-                switch (line[1..])
-                {
-                    case "exit":
-                        exiting = true;
-                        return;
-                    case "repeat":
-                        input = prevInput;
-                        goto Parse;
-                    case "clear":
-                        env.Store.Clear();
-                        return;
-                    case "vm":
-                        vm = !vm;
-                        Console.WriteLine($"VM Mode: {vm}".Cyan());
-                        return;
-                    default:
-                        Console.WriteLine("Invalid REPL Command. To exit use .exit");
-                        return;
-                }
-            }
-            exiting = false;
-            input = RegexReplEndBS().Match(line).Groups["line"].Value;
-            Tokenizer nestChecker = new(input);
-            nestingLevel = CountNestLevel(nestChecker);
-            while (RegexIncompleteLine().IsMatch(line) || nestingLevel > 0)
-            {
-                Console.Write(CONTINUE);
-                line = Console.ReadLine();
-                if (line is null or "") break;
-                input += $"\n{RegexReplEndBS().Match(line).Groups["line"].Value}";
-                nestChecker = new(input);
-                nestingLevel = CountNestLevel(nestChecker);
-            }
-
-            prevInput = input;
-            Parse:
-            Tokenizer lx = new(input);
-            Parser ps = new(lx);
-            ASTRoot AST = ps.ParseProgram();
-#if DEBUG
-            if (parserDebug)
-            {
-                lx.Reset();
-                Console.WriteLine("Lexer Output: ".Bold().Yellow());
-                foreach (Token token in lx)
-                    Console.Write($"{{{token.Type}, {token.Literal}, {token.Line}, {token.Column}}} ".Yellow());
-                Console.WriteLine();
-                Console.WriteLine("Parser Output: ".Bold().Green());
-                Console.WriteLine(AST.JOHNSerialize().Green());
-                Console.WriteLine("Reconstructed AST: ".Bold().Blue());
-                Console.WriteLine(AST.ToString().Blue());
-                if (ps.Errors.Length > 0)
-                {
-                    string a = ps.Errors.Select(e => e.ToString().Red()).Aggregate((a, b) => a + "\n" + b);
-                    Console.WriteLine("Errors Encountered: ".Bold().Red());
-                    Console.WriteLine(a);
-                }
-            }
-            Console.WriteLine((vm ? "Compiler Output: " : "Interpreter Output: ").Cyan().Bold());
-#else
-            if (ps.Errors.Length > 0) {
-                Console.WriteLine(ps.Errors.Select(e => e.ToString()).Aggregate((a, b) => a + "\n" + b));
-                return;
-            }
-#endif
-            if (vm)
-            {
-                Compiler cmp = new();
-                try
-                {
-                    cmp.Compile(AST);
-                    Console.WriteLine(ByteCode.Stringify(cmp.GetByteCode().Instructions).Cyan());
-                    Console.WriteLine(JOHN.Minify(JOHN.Serialize(cmp.GetByteCode().Constants.Select(x => x.Inspect()).ToArray())).Cyan().Italic());
-                }
-                catch (Exception e)
-                {
-                    Console.WriteLine("Failed to Compile. " + e.Message.Red());
-                    return;
-                }
-                VM.VM machine = new(cmp.GetByteCode());
-                try
-                {
-                    machine.Run();
-                }
-                catch (Exception e)
-                {
-                    Console.WriteLine("Failed to Execute VM. " + e.Message.Red());
-                    return;
-                }
-
-                Console.WriteLine("VM StackTop: ".Blue().Bold());
-                Console.WriteLine(machine.StackTop().Inspect());
-            }
-            else
-            {
-                try
-                {
-                    IJaneObject output = IJaneObject.JANE_UNINITIALIZED;
-                    Exception? e = null;
-                    // 256 MB of stack size so i don't have to deal with anything and I'll leave it to the OS like a true evil person
-                    Thread it = new(new ThreadStart(() =>
+                case "exit":
+                case "quit":
+                    ShouldEnd = true;
+                    break;
+                case "help":
+                    // TODO
+                    _colorify.WriteLine("Help yourself bro :skull emoji:");
+                    break;
+                case "load":
+                    if (args == null || args.Length < 1)
+                        _colorify.WriteLine($"Load command requires a filename");
+                    else
                     {
                         try
                         {
-                            output = Interpreter.Interpreter.Eval(AST, env);
+                            string input = File.ReadAllText(string.Join(" ", args));
+                            Eval(input);
                         }
-                        catch (Exception ex)
+                        catch (Exception ex) when (ex is FileNotFoundException or DirectoryNotFoundException or UnauthorizedAccessException)
                         {
-                            e = ex;
+                            _colorify.WriteLine("File not found or inaccessible ':(");
                         }
-                    }), 0b1000000000000000000000000000);
-
-                    it.Start();
-                    it.Join(2000);
-                    if (it.IsAlive)
-                    {
-                        Console.Write($"Welp you seem to have given it some tough prompt... ");
-#if DEBUG
-                        Console.WriteLine();
-                        Console.WriteLine($"{it.GetApartmentState()}");
-#endif
-                        it.Join();
                     }
-                    if (output == IJaneObject.JANE_UNINITIALIZED) throw e ?? new Exception("uh...");
-
-                    if (output != IJaneObject.JANE_ABYSS) Console.WriteLine(output.Inspect()
-#if DEBUG
-                        .Cyan()
-#endif
-                    );
-                }
-                catch (RuntimeError e)
-                {
-                    Console.Error.WriteLine($"{e.Message}; at Line {e.Token.Line}, Column {e.Token.Column}".Red());
-                }
-                catch (NotImplementedException e)
-                {
-                    Console.Error.WriteLine(e.Message.Red());
-                }
-                catch (Exception e)
-                {
-                    Console.Error.WriteLine(e.Message);
-                }
+                    break;
+                case "log":
+                    if (args == null || args.Length < 1)
+                        _colorify.WriteLine("Log command requires a Loglevel");
+                    else
+                    {
+                        if (Enum.TryParse<REPLLogLevel>(args[0], true, out REPLLogLevel result))
+                        {
+                            LogLevel = result;
+                        }
+                        else
+                        {
+                            _colorify.WriteLine("Unrecognized Log Level. Choices are: " + string.Join(", ", Enum.GetNames<REPLLogLevel>()));
+                        }
+                    }
+                    break;
+                case "reset":
+                    Constants = [];
+                    SymbolTable = new SymbolTable();
+                    break;
+                default:
+                    _colorify.WriteLine($"Command \"{command}\" not recognized");
+                    break;
             }
         }
 
-        static int CountNestLevel(Tokenizer t)
+        static void Console_CancelKeyPress(object? sender, ConsoleCancelEventArgs e)
         {
-            try
-            {
-                int level = 0;
-                foreach (Token token in t)
-                {
-                    if (token.Type == TokenType.LBRACE) level++;
-                    else if (token.Type == TokenType.RBRACE) level--;
-                }
-                return level;
-            }
-            catch
-            {
-                return 0;
-            }
+            e.Cancel = true;
         }
-
-        [GeneratedRegex(@".*[\\]\s*$")]
-        private static partial Regex RegexIncompleteLine();
-        [GeneratedRegex(@"(?<line>.*)[\\]\s*$|(?<line>.+$)")]
-        private static partial Regex RegexReplEndBS();
+        public enum REPLLogLevel
+        {
+            DEBUG,
+            INFO,
+            WARNING,
+            ERROR,
+            RESULT
+        }
+        private static ImmutableDictionary<REPLLogLevel, string> LogLevelColorify = new Dictionary<REPLLogLevel, string>() {
+            { REPLLogLevel.DEBUG, Colorify.Colors.txtMuted },
+            { REPLLogLevel.INFO, Colorify.Colors.txtInfo },
+            { REPLLogLevel.WARNING, Colorify.Colors.txtWarning },
+            { REPLLogLevel.ERROR, Colorify.Colors.txtDanger },
+            { REPLLogLevel.RESULT, Colorify.Colors.txtSuccess }
+        }.ToImmutableDictionary();
     }
 }
