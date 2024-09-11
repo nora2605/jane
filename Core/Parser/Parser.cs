@@ -44,7 +44,7 @@ namespace Jane.Core
                 { TokenType.INCREMENT, ParsePrefixExpression },
                 { TokenType.DECREMENT, ParsePrefixExpression },
                 { TokenType.B_NEG, ParsePrefixExpression },
-                // { TokenType.LSQB, ParseArray }
+                { TokenType.LSQB, ParseArray }
             };
 
             // Gets parsed regularly by ParseInfixExpression
@@ -77,15 +77,16 @@ namespace Jane.Core
                 TokenType.CURRY,
                 TokenType.IN,
                 TokenType.RANGE,
-
             ];
 
             BinaryParseFns = new()
             {
                 { TokenType.LPAREN, ParseCallExpression },
                 { TokenType.ASSIGN, ParseAssignment },
-                { TokenType.INTERRO, ParseTernary }
-                // { TokenType.LSQB, ParseIndexingExpression },
+                { TokenType.INTERRO, ParseTernary },
+                { TokenType.LSQB, ParseIndexingExpression },
+                { TokenType.LAMBDA, ParseLambdaExpression },
+                { TokenType.COMMA, ParseTuple },
             };
 
             PostfixParseFns = new()
@@ -111,7 +112,7 @@ namespace Jane.Core
                 IStatement? statement = ParseStatement();
                 if (statement is not null)
                     statements.Add(statement);
-                _ = ExpectEOL_S();
+                _ = ExpectStatementEnd();
                 SkipEOL_S();
             }
             program.Statements = [.. statements];
@@ -176,7 +177,7 @@ namespace Jane.Core
                 IStatement? statement = ParseStatement();
                 if (statement is not null)
                     statements.Add(statement);
-                _ = ExpectEOL_S();
+                _ = ExpectStatementEnd();
                 SkipEOL_S();
             }
             block.Statements = [.. statements];
@@ -211,14 +212,48 @@ namespace Jane.Core
                 if (fntype == null) return null;
                 fn.Type = (Identifier)fntype;
             }
-            Consume(TokenType.LCRB);
             fn.Body = ParseBlockStatement();
             return fn;
         }
 
+        IExpression? ParseLambdaExpression(IExpression? left)
+        {
+            LambdaExpression e = new() { Token = Current };
+            if (left is null) return null;
+            e.Arguments = left;
+            Consume(TokenType.LAMBDA);
+            var body = ParseStatement();
+            if (body is null) return null;
+            e.Body = body;
+            return e;
+        }
+
         IStatement? ParseClassDecl()
         {
-            return null;
+            Consume(TokenType.CLASS);
+            ClassDecl c = new() { Token = Current };
+            var name = ParseIdentifier();
+            if (name is null) return null;
+            c.Name = (Identifier)name;
+            c.Body = ParseBlockStatement();
+            return c;
+        }
+
+        IExpression? ParseTuple(IExpression? fst)
+        {
+            TupleLiteral e = new() { Token = Current };
+            if (fst is null) return null;
+            List<IExpression> elems = [];
+            elems.Add(fst);
+            while (Current.Type == TokenType.COMMA)
+            {
+                Consume(TokenType.COMMA);
+                var elem = ParseExpression(OperatorPrecedence.TUPLE);
+                if (elem is null) return null;
+                elems.Add(elem);
+            }
+            e.Elements = [.. elems];
+            return e;
         }
 
         IExpression? ParseExpression(OperatorPrecedence precedence = OperatorPrecedence.LOWEST)
@@ -254,10 +289,47 @@ namespace Jane.Core
 
         IExpression? ParseGroupedExpression()
         {
+            var open = Current;
             Consume(TokenType.LPAREN);
+            if (Current.Type == TokenType.RPAREN)
+            {
+                Consume(TokenType.RPAREN);
+                return new TupleLiteral() { Token = open, Elements = [] };
+            }
             var expr = ParseExpression(OperatorPrecedence.LOWEST);
             Consume(TokenType.RPAREN);
             return expr;
+        }
+
+        IExpression? ParseArray()
+        {
+            ArrayLiteral a = new() { Token = Current };
+            List<IExpression> elems = [];
+            Consume(TokenType.LSQB);
+            while (Current.Type != TokenType.RSQB && Current.Type != TokenType.EOF)
+            {
+                var elem = ParseExpression(OperatorPrecedence.TUPLE);
+                if (elem is null) return null;
+                elems.Add(elem);
+                if (Current.Type == TokenType.COMMA)
+                    Consume(TokenType.COMMA);
+            }
+            Consume(TokenType.RSQB);
+            a.Elements = [.. elems];
+            return a;
+        }
+
+        IExpression? ParseIndexingExpression(IExpression? left)
+        {
+            IndexingExpression e = new() { Token = Current };
+            if (left is null) return null;
+            e.Indexed = left;
+            Consume(TokenType.LSQB);
+            var arg = ParseExpression();
+            if (arg is null) return null;
+            e.Index = arg;
+            Consume(TokenType.RSQB);
+            return e;
         }
 
         IExpression? ParseIdentifier() {
@@ -345,9 +417,9 @@ namespace Jane.Core
 
         private IExpression? ParseCallExpression(IExpression? left)
         {
-            if (left == null) return null;
             CallExpression e = new() { Token = Current };
             Consume(TokenType.LPAREN);
+            if (left == null) return null;
             if (Current.Type == TokenType.RPAREN)
             {
                 e.Arguments = [];
@@ -366,9 +438,9 @@ namespace Jane.Core
         private IExpression? ParseTernary(IExpression? left)
         {
             TernaryExpression e = new() { Token = Current };
+            Consume(TokenType.INTERRO);
             if (left is null) return null;
             e.Condition = left;
-            Consume(TokenType.INTERRO);
             IExpression? el = ParseExpression();
             if (el is null) return null;
             Consume(TokenType.COLON);
@@ -472,7 +544,11 @@ namespace Jane.Core
         {
             Assignment a = new() { Token = Current };
             Consume(TokenType.ASSIGN);
-            if (left is null or not Identifier) return null;
+            if (left is null or not Identifier)
+            {
+                ParserError(ParserErrorType.Unspecified, "Assignment to Patterns is not yet implemented");
+                return null;
+            }
             a.Name = (Identifier)left;
             IExpression? value = ParseExpression();
             if (value is null) return null;
@@ -512,10 +588,14 @@ namespace Jane.Core
         /// Expects either EOL, a semicolon or EOF as end of statement/expression
         /// </summary>
         /// <returns><c>true</c> if success, <c>false</c> if errored</returns>
-        bool ExpectEOL_S()
+        bool ExpectStatementEnd()
         {
-            if (Current.Type == TokenType.EOL || Current.Type == TokenType.SEMICOLON || Current.Type == TokenType.EOF)
-                return true;
+            if (
+                Current.Type == TokenType.EOL ||
+                Current.Type == TokenType.SEMICOLON ||
+                Current.Type == TokenType.EOF ||
+                Current.Type == TokenType.RCRB
+            ) return true;
             ParserError(ParserErrorType.UnexpectedToken, $"Expected EOL or SEMICOLON");
             return false;
         }

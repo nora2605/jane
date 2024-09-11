@@ -12,9 +12,9 @@ namespace SHJI.Bytecode
         public static ImmutableDictionary<OpCode, OpDefinition> Definitions { get; } = new Dictionary<OpCode, OpDefinition>()
         {
             { OpCode.HALT, new OpDefinition("Halt", []) },
-            { OpCode.PUSH, new OpDefinition("Push Constant", [2]) },
-            { OpCode.GET, new OpDefinition("Get Variable", [2]) },
-            { OpCode.SET, new OpDefinition("Set Variable", [2]) },
+            { OpCode.LOAD, new OpDefinition("Push Constant", [4]) },
+            { OpCode.GET, new OpDefinition("Get Variable", [4]) },
+            { OpCode.SET, new OpDefinition("Set Variable", [4]) },
             { OpCode.DUP, new OpDefinition("Duplicate", []) },
             { OpCode.POP, new OpDefinition("Pop", []) },
             { OpCode.ADD, new OpDefinition("Add", []) },
@@ -26,11 +26,14 @@ namespace SHJI.Bytecode
             { OpCode.FALSE, new OpDefinition("False", []) },
             { OpCode.NOT, new OpDefinition("Not", []) },
             { OpCode.NEGATE, new OpDefinition("Negate", []) },
-            { OpCode.JF, new OpDefinition("Jump if false", [8]) },
-            { OpCode.JMP, new OpDefinition("Jump", [8]) },
+            { OpCode.JF, new OpDefinition("Jump if false", [4]) },
+            { OpCode.JMP, new OpDefinition("Jump", [4]) },
             { OpCode.ABYSS, new OpDefinition("Abyss", []) },
             { OpCode.EQUAL, new OpDefinition("Equal", []) },
-            { OpCode.PUSHTMP, new OpDefinition("Push TmpReg", []) }
+            { OpCode.PUSHTMP, new OpDefinition("Push TmpReg", []) },
+            { OpCode.CONSTR_ARR, new OpDefinition("Construct Array", [4]) },
+            { OpCode.CALL, new OpDefinition("Call", []) },
+            { OpCode.RET, new OpDefinition("Return", []) }
         }.ToImmutableDictionary();
 
         public static byte[] Make(OpCode opCode, params ulong[] operands)
@@ -74,7 +77,7 @@ namespace SHJI.Bytecode
             {
                 int curPos = pos;
                 var (opCode, operands) = ReadInstruction(bc, ref pos);
-                acc += $"{curPos:0000} {(Definitions.ContainsKey(opCode) ? Definitions[opCode].Name : opCode.ToString())} {string.Join(" ", operands)}\n";
+                acc += $"{curPos:0000} {(Definitions.TryGetValue(opCode, out OpDefinition value) ? value.Name : opCode.ToString())} {string.Join(" ", operands)}\n";
             }
             return acc.Length == 0 ? "" : acc[..^1];
         }
@@ -95,7 +98,7 @@ namespace SHJI.Bytecode
 
         
     }
-    public struct OpDefinition(string name, int[] operandWidths)
+    public readonly struct OpDefinition(string name, int[] operandWidths)
     {
         public string Name { get; } = name;
         public int[] OperandWidths { get; } = operandWidths;
@@ -105,7 +108,7 @@ namespace SHJI.Bytecode
     {
         NOP,
         HALT,
-        PUSH,
+        LOAD,
         GET,
         SET,
         DUP,
@@ -114,6 +117,7 @@ namespace SHJI.Bytecode
         SUB,
         MUL,
         DIV,
+        INDEX,
         CONCAT,
         TRUE,
         FALSE,
@@ -127,6 +131,9 @@ namespace SHJI.Bytecode
         JF,
         JMP,
         POW,
+        CALL,
+        RET,
         PUSHTMP, // Lifts the TempReg back into the Stack to convert the result of an expressionstatement into an expressionresult
+        CONSTR_ARR,
     }
 }

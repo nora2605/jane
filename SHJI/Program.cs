@@ -9,7 +9,7 @@ class Program
     static void Main(string[] args)
     {
 #if DEBUG
-        new REPL(REPL.REPLLogLevel.DEBUG).Run();
+        new REPL(REPL.REPLLogLevel.INFO).Run();
 #else
         new REPL().Run();
 #endif

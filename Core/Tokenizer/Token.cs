@@ -59,6 +59,7 @@ namespace Jane.Core
 #endif
             { ',', TokenType.COMMA },
             { '_', TokenType.DISCARD },
+            { '$', TokenType.CURRY }
         }.ToImmutableDictionary();
 
         /// <summary>
