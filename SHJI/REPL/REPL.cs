@@ -9,23 +9,18 @@ using System.Xml.Serialization;
 
 namespace SHJI
 {
-    internal class REPL
+    internal class REPL(REPL.REPLLogLevel logLevel)
     {
         private bool ShouldEnd { get; set; }
-        public REPLLogLevel LogLevel { get; set; }
+        public REPLLogLevel LogLevel { get; set; } = logLevel;
 
-        private Colorify.Format _colorify;
+        private readonly Colorify.Format _colorify = new(Colorify.UI.Theme.Dark);
 
         private JaneValue[] Constants = [];
         private SymbolTable SymbolTable = new();
         private JaneValue[] Globals = new JaneValue[2<<16];
 
         public REPL() : this(REPLLogLevel.WARNING) { }
-        public REPL(REPLLogLevel logLevel)
-        {
-            LogLevel = logLevel;
-            _colorify = new(Colorify.UI.Theme.Dark);
-        }
 
         public void Run()
         {
@@ -108,11 +103,12 @@ namespace SHJI
             JaneValue v = JaneValue.Abyss;
             JnCompiler c = new(SymbolTable, Constants);
             c.Compile(r);
+            c.Optimize();
             stageTimes.Add("Compile", DateTime.Now - startStage);
             SymbolTable = c.SymbolTable;
             Constants = c.Constants;
-            Log("Bytecode", REPLLogLevel.DEBUG, JnBytecode.BCToString(c.Instructions));
-            Log("Heap", REPLLogLevel.DEBUG, string.Join("\n", c.Constants.Select((a, i) => $"{i}: {a.Inspect()}::{a.Type}")));
+            Log("Bytecode", REPLLogLevel.DEBUG, JnBytecode.BCToString(c.CurrentInstructions));
+            Log("Constants", REPLLogLevel.DEBUG, string.Join("\n", c.Constants.Select((a, i) => $"{i}: {a.Inspect()}::{a.Type}")));
 
             if (c.Errors.Length > 0)
             {
@@ -121,11 +117,14 @@ namespace SHJI
                     REPLLogLevel.ERROR,
                     string.Join<CompilerError>("\n", c.Errors)
                 );
+                Log("REPL State was reset due to Compiler Errors.", REPLLogLevel.WARNING);
+                // constants and symbols usually orphaned so it's better to start over
+                Reset();
                 return;
             }
 
             startStage = DateTime.Now;
-            JnVM vm = new(c.Constants, c.Instructions, Globals);
+            JnVM vm = new(c.Constants, c.CurrentInstructions, Globals);
             try
             {
                 vm.Run();
@@ -138,7 +137,7 @@ namespace SHJI
                 return;
             }
             stageTimes.Add("Run", DateTime.Now - startStage);
-            Log("VM Stack", REPLLogLevel.DEBUG, string.Join("\n", vm.Stack.Select(a => a.Inspect())));
+            Log("VM Stack", REPLLogLevel.DEBUG, string.Join("\n", vm.ValueStack.Select(a => a.Inspect())));
             v = vm.TempReg;
 
             if (v != JaneValue.Abyss)
@@ -211,8 +210,10 @@ namespace SHJI
                     }
                     break;
                 case "reset":
-                    Constants = [];
-                    SymbolTable = new SymbolTable();
+                    Reset();
+                    break;
+                case "clear":
+                    Console.Clear();
                     break;
                 default:
                     _colorify.WriteLine($"Command \"{command}\" not recognized");
@@ -220,6 +221,11 @@ namespace SHJI
             }
         }
 
+        public void Reset()
+        {
+            Constants = [];
+            SymbolTable = new SymbolTable();
+        }
         static void Console_CancelKeyPress(object? sender, ConsoleCancelEventArgs e)
         {
             e.Cancel = true;
@@ -232,7 +238,7 @@ namespace SHJI
             ERROR,
             RESULT
         }
-        private static ImmutableDictionary<REPLLogLevel, string> LogLevelColorify = new Dictionary<REPLLogLevel, string>() {
+        private static readonly ImmutableDictionary<REPLLogLevel, string> LogLevelColorify = new Dictionary<REPLLogLevel, string>() {
             { REPLLogLevel.DEBUG, Colorify.Colors.txtMuted },
             { REPLLogLevel.INFO, Colorify.Colors.txtInfo },
             { REPLLogLevel.WARNING, Colorify.Colors.txtWarning },

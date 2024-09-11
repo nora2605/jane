@@ -6,6 +6,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using System.Net.WebSockets;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -14,24 +15,30 @@ namespace SHJI.Compiler
 {
     public class JnCompiler
     {
-        public byte[] Instructions { get => [.. instructions]; }
+        public byte[] CurrentInstructions {
+            get => [.. scopes.Last().Instructions];
+        }
         public JaneValue[] Constants { get => [.. consts.OrderBy(x => x.Value).Select(x => x.Key)]; }
         public CompilerError[] Errors { get => [.. errors]; }
 
-        private List<byte> instructions = [];
-        private Dictionary<JaneValue, int> consts = [];
+        private readonly List<Scope> scopes = [];
+        private readonly Dictionary<JaneValue, int> consts;
         public SymbolTable SymbolTable { get; private set; }
 
-        private List<CompilerError> errors = [];
+        private readonly List<CompilerError> errors = [];
 
-        public JnCompiler() : this(new(), []) { }
         public JnCompiler(SymbolTable st, JaneValue[] constants)
         {
-            SymbolTable = st;
             consts = constants.Select((c, i) => new KeyValuePair<JaneValue, int>(c, i)).ToDictionary();
+            SymbolTable = st;
+
+            Scope topLevel = new();
+            scopes = [topLevel];
         }
 
-        private static ImmutableDictionary<string, OpCode> OperatorToInstruction = new Dictionary<string, OpCode>()
+        public JnCompiler() : this(new(), []) { }
+
+        private static readonly ImmutableDictionary<string, OpCode> OperatorToInstruction = new Dictionary<string, OpCode>()
         {
             { "+", OpCode.ADD },
             { "-", OpCode.SUB },
@@ -102,36 +109,28 @@ namespace SHJI.Compiler
                     });
                     break;
                 case StringLiteral a:
-                    if (a.Expressions.Length == 0)
-                        Emit(OpCode.PUSH, (ulong)MakeConst(new JaneString("")));
-                    else
+                    Emit(OpCode.LOAD, (ulong)MakeConst(new JaneString("")));
+                    foreach (var e in a.Expressions)
                     {
-                        Compile(a.Expressions[0]);
-                        if (a.Expressions.Length > 1)
-                        {
-                            foreach (var e in a.Expressions[1..])
-                            {
-                                Compile(e);
-                                Emit(OpCode.CONCAT);
-                            }
-                        }
+                        Compile(e);
+                        Emit(OpCode.CONCAT);
                     }
                     break;
                 case Interpolation a:
                     Compile(a.Content);
                     break;
                 case Jane.Core.StringContent a:
-                    Emit(OpCode.PUSH, (ulong)MakeConst(new JaneString(Regex.Unescape(a.EscapedValue))));
+                    Emit(OpCode.LOAD, (ulong)MakeConst(new JaneString(Regex.Unescape(a.EscapedValue))));
                     break;
                 case IntegerLiteral a:
-                    Emit(OpCode.PUSH, (ulong)MakeConst(new JaneInt(a.Value)));
+                    Emit(OpCode.LOAD, (ulong)MakeConst(new JaneInt(a.Value)));
                     break;
                 case IfExpression a:
                     Compile(a.Condition);
                     int jinstr = Emit(OpCode.JF, 0);
                     Compile(a.Cons);
                     int finstr = Emit(OpCode.JMP, 0);
-                    ReplaceInstr(jinstr, JnBytecode.Make(OpCode.JF, (ulong)instructions.Count));
+                    ReplaceInstr(jinstr, JnBytecode.Make(OpCode.JF, (ulong)CurrentInstructions.Length));
                     if (a.Alt != null)
                         Compile(a.Alt);
                     else
@@ -139,10 +138,10 @@ namespace SHJI.Compiler
                         Emit(OpCode.ABYSS);
                         Emit(OpCode.POP);
                     }
-                    ReplaceInstr(finstr, JnBytecode.Make(OpCode.JMP, (ulong)instructions.Count));
+                    ReplaceInstr(finstr, JnBytecode.Make(OpCode.JMP, (ulong)CurrentInstructions.Length));
                     Emit(OpCode.PUSHTMP);
                     break;
-                case Abyss a:
+                case Abyss:
                     Emit(OpCode.ABYSS);
                     break;
                 case LetExpression a:
@@ -171,11 +170,130 @@ namespace SHJI.Compiler
                     if (ass is null) AddError(a, CompilerErrorType.Unspecified, $"Variable {a.Value} not declared in this scope.");
                     else Emit(OpCode.SET, (ulong)ass.Value.Index);
                     break;
+                case FloatLiteral a:
+                    Emit(OpCode.LOAD, (ulong)MakeConst(new JaneFloat(a.Value)));
+                    break;
+                case ArrayLiteral a:
+                    foreach (IExpression arr_expr in a.Elements.Reverse())
+                        Compile(arr_expr);
+                    Emit(OpCode.CONSTR_ARR, (ulong)a.Elements.Length);
+                    break;
+                case IndexingExpression a:
+                    Compile(a.Indexed);
+                    Compile(a.Index);
+                    Emit(OpCode.INDEX);
+                    break;
+                case CharLiteral a:
+                    string lit = Regex.Unescape(a.Value);
+                    if (lit.Length != 1) AddError(a, CompilerErrorType.Unspecified, $"Char Literal contains more than one character.");
+                    else Emit(OpCode.LOAD, (ulong)MakeConst(new JaneChar(lit[0])));
+                    break;
+                case LambdaExpression a:
+                    EnterScope();
+                    Compile(a.Body);
+                    if (a.Body is BlockStatement body)
+                    {
+                        if (body.Statements.Length == 0)
+                            Emit(OpCode.ABYSS);
+                        else if (body.Statements.Last() is ExpressionStatement)
+                            Emit(OpCode.PUSHTMP);
+                    }
+                    else if (a.Body is ExpressionStatement)
+                        Emit(OpCode.PUSHTMP);
+                    else Emit(OpCode.ABYSS);
+
+                    Emit(OpCode.RET);
+                    Optimize();
+                    var instrs = LeaveScope();
+                    var lambda = new JaneFunction(instrs);
+                    Emit(OpCode.LOAD, (ulong)MakeConst(lambda));
+                    break;
+                case FunctionDecl a:
+                    EnterScope();
+                    Compile(a.Body);
+                    if (a.Body.Statements.Length == 0)
+                        Emit(OpCode.ABYSS);
+                    else if (a.Body.Statements.Last() is ExpressionStatement)
+                        Emit(OpCode.PUSHTMP);
+                    Emit(OpCode.RET);
+                    Optimize();
+                    var finstrs = LeaveScope();
+                    var function = new JaneFunction(finstrs);
+                    Emit(OpCode.LOAD, (ulong)MakeConst(function));
+                    var sym = SymbolTable.Define(a.Name.Value);
+                    if (sym is null) AddError(currentNode, CompilerErrorType.Unspecified, "Function name already present in scope");
+                    else Emit(OpCode.SET, (ulong)sym.Value.Index);
+                    break;
+                case ReturnStatement a:
+                    if (a.ReturnValue != null) Compile(a.ReturnValue);
+                    else Emit(OpCode.ABYSS);
+                    Emit(OpCode.RET);
+                    break;
+                case CallExpression a:
+                    Compile(a.Function);
+                    //foreach (IExpression e in a.Arguments)
+                    //    Compile(e);
+                    Emit(OpCode.CALL);
+                    break;
                 default:
                     AddError(node, CompilerErrorType.Unspecified, $"AST Node Type not implemented");
                     break;
             }
             return;
+        }
+
+        // as if lol
+        public void Optimize()
+        {
+            if (CurrentInstructions.Length == 0) return;
+            OptimizePeepholePopPush();
+            RemoveNOP();
+        }
+
+        private void OptimizePeepholePopPush()
+        {
+            int position = 0;
+            byte[] cur = CurrentInstructions;
+            var (opFirst, _) = JnBytecode.ReadInstruction(cur, ref position);
+            while (position < cur.Length)
+            {
+                var (opSecond, _) = JnBytecode.ReadInstruction(cur, ref position);
+                if (opFirst == OpCode.POP && opSecond == OpCode.PUSHTMP)
+                {
+                    byte[] nop = JnBytecode.Make(OpCode.NOP);
+                    ReplaceInstr(position - 2, nop);
+                    ReplaceInstr(position - 1, nop);
+                }
+                opFirst = opSecond;
+            }
+        }
+
+        private void RemoveNOP()
+        {
+            int position = 0;
+            int removed = 0;
+            byte[] cur = CurrentInstructions;
+            List<byte> newInstrs = [.. cur];
+            while (position < cur.Length)
+            {
+                var (op, _) = JnBytecode.ReadInstruction(cur, ref position);
+                if (op == OpCode.NOP)
+                    newInstrs.RemoveAt(position - 1 - (removed++));
+            }
+            scopes[scopes.Count - 1].Instructions = newInstrs;
+        }
+
+        private void EnterScope()
+        {
+            var scope = new Scope();
+            scopes.Add(scope);
+        }
+
+        private byte[] LeaveScope()
+        {
+            var instrs = scopes.Last().Instructions;
+            scopes.RemoveAt(scopes.Count - 1);
+            return [..instrs];
         }
 
         private int Emit(OpCode opCode, params ulong[] operands)
@@ -187,16 +305,16 @@ namespace SHJI.Compiler
 
         private int AddInstruction(byte[] instr)
         {
-            int pos = instructions.Count;
-            instructions.AddRange(instr);
+            int pos = CurrentInstructions.Length;
+            scopes.Last().Instructions.AddRange(instr);
             return pos;
         }
 
         /// <summary>
-        /// Adds a constant to the heap and returns its index
+        /// Adds a constant to the Pile and returns its index
         /// </summary>
         /// <param name="constant">The constant to be added</param>
-        /// <returns>The index in the heap</returns>
+        /// <returns>The index in the Pile</returns>
         private int MakeConst(JaneValue constant)
         {
             if (consts.TryGetValue(constant, out int val))
@@ -210,7 +328,7 @@ namespace SHJI.Compiler
         {
             for (int i = 0; i < ninstr.Length; i++)
             {
-                instructions[instr_p + i] = ninstr[i];
+                scopes.Last().Instructions[instr_p + i] = ninstr[i];
             }
         }
 

@@ -4,6 +4,8 @@ using System.ComponentModel;
 using System.Linq;
 using System.Numerics;
 using System.Reflection;
+using System.Reflection.Metadata.Ecma335;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -14,12 +16,12 @@ namespace SHJI.VM
     public class JnVM
     {
         public JaneValue[] Constants { get; }
-        public byte[] Code { get; }
-        public JaneValue TempReg { get => lastPopped; } 
+        public JaneValue TempReg { get => lastPopped; }
+        public byte[] Code { get => CallStack.Peek().Function.Value; }
         public int Position { get => position - 1; }
         public JaneValue[] Globals { get; private set; }
-        public Stack<JaneValue> Stack { get; private set; } = new();
-
+        public Stack<JaneValue> ValueStack { get; private set; } = new();
+        public Stack<Frame> CallStack { get; private set; } = new();
 
         JaneValue lastPopped = JaneValue.Abyss;
         private int position = 0;
@@ -27,9 +29,11 @@ namespace SHJI.VM
         public JnVM(JaneValue[] consts, byte[] bc, JaneValue[]? globals = null)
         {
             Constants = consts;
-            Code = bc;
             if (globals is null) Globals = new JaneValue[2 << 16];
             else Globals = globals;
+
+            JaneFunction main = new JaneFunction(bc);
+            CallStack.Push(new Frame(main));
         }
 
         public void Run()
@@ -42,11 +46,11 @@ namespace SHJI.VM
                     case OpCode.HALT:
                         position = Code.Length;
                         break;
-                    case OpCode.PUSH:
-                        Stack.Push(Constants[operands[0]]);
+                    case OpCode.LOAD:
+                        ValueStack.Push(Constants[operands[0]]);
                         break;
                     case OpCode.POP:
-                        lastPopped = Stack.Pop();
+                        lastPopped = ValueStack.Pop();
                         break;
                     case OpCode.ADD:
                     case OpCode.SUB:
@@ -57,34 +61,40 @@ namespace SHJI.VM
                     case OpCode.POW:
                     case OpCode.LT:
                     case OpCode.GT:
+                    case OpCode.INDEX:
                         {
-                            JaneValue right = Stack.Pop();
-                            JaneValue left = Stack.Pop();
-                            Stack.Push(ResolveOperator(left, right, instr)(left, right));
+                            JaneValue right = ValueStack.Pop();
+                            JaneValue left = ValueStack.Pop();
+                            if ((left is JaneInt && right is JaneFloat) || (left is JaneFloat && right is JaneInt))
+                            {
+                                left = new JaneFloat(double.Parse(left.Inspect()));
+                                right = new JaneFloat(double.Parse(right.Inspect()));
+                            }
+                            ValueStack.Push(ResolveOperator(left, right, instr)(left, right));
                         }
                         break;
                     case OpCode.TRUE:
-                        Stack.Push(JaneValue.True);
+                        ValueStack.Push(JaneValue.True);
                         break;
                     case OpCode.FALSE:
-                        Stack.Push(JaneValue.False);
+                        ValueStack.Push(JaneValue.False);
                         break;
                     case OpCode.NOT:
-                        if (Stack.Pop() is JaneBool b) Stack.Push(b.Value ? JaneValue.False : JaneValue.True);
+                        if (ValueStack.Pop() is JaneBool b) ValueStack.Push(b.Value ? JaneValue.False : JaneValue.True);
                         else throw new NotImplementedException("NOT operator is only supported for booleans");
                         break;
                     case OpCode.NEGATE:
-                        if (Stack.Pop() is JaneInt i) Stack.Push(new JaneInt(-i.Value));
+                        if (ValueStack.Pop() is JaneInt i) ValueStack.Push(new JaneInt(-i.Value));
                         else throw new NotImplementedException("NEGATION operator is only supported for numerics");
                         break;
                     case OpCode.JMP:
                         position = (int)operands[0];
                         break;
                     case OpCode.ABYSS:
-                        Stack.Push(JaneValue.Abyss);
+                        ValueStack.Push(JaneValue.Abyss);
                         break;
                     case OpCode.JF:
-                        var cond = Stack.Pop();
+                        var cond = ValueStack.Pop();
                         if (cond is JaneBool bcond)
                         {
                             if (!bcond.Value)
@@ -93,16 +103,35 @@ namespace SHJI.VM
                         else throw new NotImplementedException($"Type {cond.Type} is not implicitly convertible to bool");
                         break;
                     case OpCode.PUSHTMP:
-                        Stack.Push(TempReg);
+                        ValueStack.Push(TempReg);
                         break;
                     case OpCode.SET:
-                        Globals[(int)operands[0]] =  Stack.Pop();
+                        Globals[(int)operands[0]] =  ValueStack.Pop();
                         break;
                     case OpCode.GET:
-                        Stack.Push(Globals[(int)operands[0]]);
+                        ValueStack.Push(Globals[(int)operands[0]]);
                         break;
                     case OpCode.DUP:
-                        Stack.Push(Stack.Peek());
+                        ValueStack.Push(ValueStack.Peek());
+                        break;
+                    case OpCode.CONSTR_ARR:
+                        var len = (int)operands[0];
+                        List<JaneValue> arr_elems = [];
+                        for (int idx = 0; idx < len; idx++)
+                            arr_elems.Add(ValueStack.Pop());
+                        ValueStack.Push(new JaneArray([..arr_elems]));
+                        break;
+                    case OpCode.RET:
+                        var retval = ValueStack.Pop();
+                        position = CallStack.Pop().InstructionPointer;
+                        ValueStack.Push(retval);
+                        break;
+                    case OpCode.CALL:
+                        var f = ValueStack.Pop();
+                        if (f is not JaneFunction) throw new NotImplementedException($"Object of type {f.Type} is not callable");
+                        Frame frame = new((JaneFunction)f) { InstructionPointer = position };
+                        CallStack.Push(frame);
+                        position = 0;
                         break;
                     default:
                         throw new NotImplementedException($"Unknown OpCode: {instr}");
@@ -113,6 +142,8 @@ namespace SHJI.VM
         delegate JaneValue BinaryOperator(JaneValue left, JaneValue right);
         BinaryOperator ResolveOperator(JaneValue left, JaneValue right, OpCode instruction)
         {
+            _ = left;
+            _ = right;
             return instruction switch
             {
                 OpCode.ADD => Add,
@@ -124,6 +155,7 @@ namespace SHJI.VM
                 OpCode.POW => Pow,
                 OpCode.GT => Greater,
                 OpCode.LT => Lesser,
+                OpCode.INDEX => Index,
                 _ => throw new NotImplementedException(),
             };
         }
@@ -131,42 +163,42 @@ namespace SHJI.VM
         JaneValue Add(JaneValue left, JaneValue right)
         {
             if (left is JaneInt l && right is JaneInt r)
-            {
                 return new JaneInt(l.Value + r.Value);
-            }
+            else if (left is JaneFloat fl && right is JaneFloat fr)
+                return new JaneFloat(fl.Value + fr.Value);
             throw new NotImplementedException($"Add instruction not implemented for types {left.GetType()} and {right.GetType()}");
         }
         JaneValue Sub(JaneValue left, JaneValue right)
         {
             if (left is JaneInt l && right is JaneInt r)
-            {
                 return new JaneInt(l.Value - r.Value);
-            }
+            else if (left is JaneFloat fl && right is JaneFloat fr)
+                return new JaneFloat(fl.Value - fr.Value);
             throw new NotImplementedException($"Sub instruction not implemented for types {left.Type} and {right.Type}");
         }
         JaneValue Mul(JaneValue left, JaneValue right)
         {
             if (left is JaneInt l && right is JaneInt r)
-            {
                 return new JaneInt(l.Value * r.Value);
-            }
+            else if (left is JaneFloat fl && right is JaneFloat fr)
+                return new JaneFloat(fl.Value * fr.Value);
             throw new NotImplementedException($"Mul instruction not implemented for types {left.Type} and {right.Type}");
         }
         JaneValue Div(JaneValue left, JaneValue right)
         {
             if (left is JaneInt l && right is JaneInt r)
-            {
                 return new JaneInt(l.Value / r.Value);
-            }
+            else if (left is JaneFloat fl && right is JaneFloat fr)
+                return new JaneFloat(fl.Value / fr.Value);
             throw new NotImplementedException($"Div instruction not implemented for types {left.Type} and {right.Type}");
         }
 
         JaneValue Pow(JaneValue left, JaneValue right)
         {
             if (left is JaneInt l && right is JaneInt r)
-            {
                 return new JaneInt(BigInteger.Pow(l.Value, (int)r.Value));
-            }
+            else if (left is JaneFloat fl && right is JaneFloat fr)
+                return new JaneFloat(Math.Pow(fl.Value, fr.Value));
             throw new NotImplementedException($"Pow instruction not implemented for types {left.Type} and {right.Type}");
         }
 
@@ -177,29 +209,39 @@ namespace SHJI.VM
 
         JaneValue Equal(JaneValue left, JaneValue right)
         {
-            return left.Value == right.Value ? JaneValue.True : JaneValue.False;
+            return left.Inspect() == right.Inspect() ? JaneValue.True : JaneValue.False;
         }
 
         JaneValue Greater(JaneValue left, JaneValue right)
         {
             if (left is JaneInt l && right is JaneInt r)
-            {
                 return l.Value > r.Value ? JaneValue.True : JaneValue.False;
-            }
+            else if (left is JaneFloat fl && right is JaneFloat fr)
+                return fl.Value > fr.Value ? JaneValue.True : JaneValue.False;
             throw new NotImplementedException($"GT instruction not implemented for types {left.Type} and {right.Type}");
         }
         JaneValue Lesser(JaneValue left, JaneValue right)
         {
             if (left is JaneInt l && right is JaneInt r)
-            {
                 return l.Value < r.Value ? JaneValue.True : JaneValue.False;
-            }
+            else if (left is JaneFloat fl && right is JaneFloat fr)
+                return fl.Value < fr.Value ? JaneValue.True : JaneValue.False;
             throw new NotImplementedException($"LT instruction not implemented for types {left.Type} and {right.Type}");
         }
 
-        string ToStringRepresentation(JaneValue v)
+        JaneValue Index(JaneValue left, JaneValue right)
+        {
+            if (left is JaneArray arr && right is JaneInt i)
+                return arr.Value[(int)i.Value];
+            else if (left is JaneString str && right is JaneInt col)
+                return new JaneChar(str.Value[(int)col.Value]);
+            throw new NotImplementedException($"INDEX instruction not implemented for types {left.Type} and {right.Type}");
+        }
+
+        private static string ToStringRepresentation(JaneValue v)
         {
             if (v is JaneString s) return s.Value;
+            else if (v is JaneChar c) return c.Value.ToString();
             else return v.Inspect();
         }
     }

@@ -1,5 +1,6 @@
 ﻿using System.Linq;
 using System.Numerics;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 
 namespace Jane.Core
@@ -96,6 +97,22 @@ namespace Jane.Core
         public IExpression[] Arguments;
 
         public override readonly string ToString() => $"{Function}({string.Join<IExpression>(", ", Arguments)})";
+    }
+
+    public struct LambdaExpression : IExpression
+    {
+        public Token Token { get; set; }
+        public IExpression Arguments; // Tuple or Identifier
+        public IStatement Body;
+        public override readonly string ToString() => $"{Arguments} => {Body}";
+    }
+
+    public struct TupleLiteral : IExpression
+    {
+        public Token Token { get; set; }
+        public IExpression[] Elements;
+
+        public override readonly string ToString() => $"({string.Join<IExpression>(", ", Elements)})";
     }
 
     public struct IntegerLiteral : IExpression
@@ -205,5 +222,21 @@ namespace Jane.Core
     {
         public Token Token { get; set; }
         public override readonly string ToString() => "abyss";
+    }
+
+    public struct ClassDecl : IStatement
+    {
+        public Token Token { get; set; }
+        public Identifier Name;
+        public BlockStatement Body;
+        public override readonly string ToString() => $"class {Name} {Body}";
+    }
+    public struct BlockStatement(IStatement single) : IStatement
+    {
+        public IStatement[] Statements = [single];
+        public Token Token { get; set; }
+
+        public readonly string TokenLiteral() => Token.Literal;
+        public override readonly string ToString() => $"{{\n{string.Join<IStatement>("\n", Statements)}\n}}";
     }
 }
