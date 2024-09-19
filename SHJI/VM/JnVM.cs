@@ -23,7 +23,7 @@ namespace SHJI.VM
             Constants = consts;
             globals ??= new JaneValue[2 << 16];
             Store = globals;
-            JaneFunction main = new(bc, 0);
+            JaneFunction main = new(bc, 0, 0);
             CallStack.Push(new Frame(main, 0));
         }
 
@@ -129,9 +129,12 @@ namespace SHJI.VM
                         var f = ValueStack.Pop();
                         if (f is not JaneFunction)
                             throw new NotImplementedException($"Object of type {f.Type} is not callable");
+                        JaneFunction jff = (JaneFunction)f;
+                        if (jff.NumParams != (int)operands[0])
+                            throw new ArgumentException($"Function expected {jff.NumParams} Arguments but got {operands[0]}");
                         Frame frame = new(
-                            (JaneFunction)f,
-                            ValueStack.StackPointer
+                            jff,
+                            ValueStack.StackPointer - (int)operands[0]
                         ) { InstructionPointer = position };
                         CallStack.Push(frame);
                         ValueStack.StackPointer = frame.BasePointer + ((JaneFunction)f).NumLocals;
