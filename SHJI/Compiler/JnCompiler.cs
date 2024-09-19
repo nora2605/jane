@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Net.WebSockets;
+using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -217,6 +218,17 @@ namespace SHJI.Compiler
                     break;
                 case LambdaExpression a:
                     EnterScope();
+                    Identifier[] para = a.Arguments switch
+                    {
+                        TupleLiteral atl => atl.Elements.Select(x => (Identifier)x).ToArray(),
+                        Identifier aid => [aid],
+                        // ok to throw here since that should be handled by the parser eventually
+                        _ => throw new NotImplementedException($"Can't treat {a.GetType()} as Parameter List"),
+                    };
+                    foreach (Identifier argName in para)
+                    {
+                        SymbolTable.Define(argName.Value);
+                    }
                     Compile(a.Body);
                     if (a.Body is BlockStatement body)
                     {
@@ -233,11 +245,13 @@ namespace SHJI.Compiler
                     Optimize();
                     int numLocals = SymbolTable.Store.Count;
                     var instrs = LeaveScope();
-                    var lambda = new JaneFunction(instrs, numLocals);
+                    var lambda = new JaneFunction(instrs, numLocals, para.Length);
                     Emit(OpCode.LOAD, (ulong)GetOrCreateConst(lambda));
                     break;
                 case FunctionDecl a:
                     EnterScope();
+                    foreach (Identifier argName in a.Args)
+                        SymbolTable.Define(argName.Value);
                     Compile(a.Body);
                     if (a.Body.Statements.Length == 0)
                         Emit(OpCode.ABYSS);
@@ -247,7 +261,7 @@ namespace SHJI.Compiler
                     Optimize();
                     int fnumLocals = SymbolTable.Store.Count;
                     var finstrs = LeaveScope();
-                    var function = new JaneFunction(finstrs, fnumLocals);
+                    var function = new JaneFunction(finstrs, fnumLocals, a.Args.Length);
                     Emit(OpCode.LOAD, (ulong)GetOrCreateConst(function));
                     var sym = SymbolTable.Define(a.Name.Value);
                     if (sym is null) AddError(currentNode, CompilerErrorType.Unspecified, "Function name already present in scope");
@@ -259,10 +273,10 @@ namespace SHJI.Compiler
                     Emit(OpCode.RET);
                     break;
                 case CallExpression a:
+                    foreach (IExpression e in a.Arguments)
+                        Compile(e);
                     Compile(a.Function);
-                    //foreach (IExpression e in a.Arguments)
-                    //    Compile(e);
-                    Emit(OpCode.CALL);
+                    Emit(OpCode.CALL, (ulong)a.Arguments.Length);
                     break;
                 default:
                     AddError(node, CompilerErrorType.Unspecified, $"AST Node Type not implemented");

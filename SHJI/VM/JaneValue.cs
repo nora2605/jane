@@ -77,10 +77,12 @@ namespace SHJI.VM
         public string Inspect() => $"[{string.Join(" ", Value.Select(x => x.Inspect()))}]";
     }
 
-    public readonly struct JaneFunction(byte[] instructions, int numLocals) : JaneValue<byte[]>
+    public readonly struct JaneFunction(byte[] instructions, int numLocals, int numParams) : JaneValue<byte[]>
     {
         public byte[] Value { get; } = instructions;
+        // Stack space to allocate
         public int NumLocals { get; } = numLocals;
+        public int NumParams { get; } = numParams;
         public string Type { get; } = "Fn<tup -> obj>";
         public string Inspect() =>
 #if DEBUG
