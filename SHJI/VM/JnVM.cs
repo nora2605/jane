@@ -1,15 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Linq;
-using System.Numerics;
-using System.Reflection;
-using System.Reflection.Metadata.Ecma335;
-using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Numerics;
 
 using SHJI.Bytecode;
+using SHJI.Util;
 
 namespace SHJI.VM
 {
@@ -19,8 +11,8 @@ namespace SHJI.VM
         public JaneValue TempReg { get => lastPopped; }
         public byte[] Code { get => CallStack.Peek().Function.Value; }
         public int Position { get => position - 1; }
-        public JaneValue[] Globals { get; private set; }
-        public Stack<JaneValue> ValueStack { get; private set; } = new();
+        public JaneValue[] Store { get; private set; }
+        public RAStack<JaneValue> ValueStack { get; private set; } = new();
         public Stack<Frame> CallStack { get; private set; } = new();
 
         JaneValue lastPopped = JaneValue.Abyss;
@@ -29,11 +21,10 @@ namespace SHJI.VM
         public JnVM(JaneValue[] consts, byte[] bc, JaneValue[]? globals = null)
         {
             Constants = consts;
-            if (globals is null) Globals = new JaneValue[2 << 16];
-            else Globals = globals;
-
-            JaneFunction main = new JaneFunction(bc);
-            CallStack.Push(new Frame(main));
+            globals ??= new JaneValue[2 << 16];
+            Store = globals;
+            JaneFunction main = new(bc, 0);
+            CallStack.Push(new Frame(main, 0));
         }
 
         public void Run()
@@ -105,11 +96,17 @@ namespace SHJI.VM
                     case OpCode.PUSHTMP:
                         ValueStack.Push(TempReg);
                         break;
+                    case OpCode.SET_GLOBAL:
+                        Store[(int)operands[0]] = ValueStack.Pop();
+                        break;
+                    case OpCode.GET_GLOBAL:
+                        ValueStack.Push(Store[(int)operands[0]]);
+                        break;
                     case OpCode.SET:
-                        Globals[(int)operands[0]] =  ValueStack.Pop();
+                        ValueStack[CallStack.Peek().BasePointer + (int)operands[0]] = ValueStack.Pop();
                         break;
                     case OpCode.GET:
-                        ValueStack.Push(Globals[(int)operands[0]]);
+                        ValueStack.Push(ValueStack[CallStack.Peek().BasePointer + (int)operands[0]]);
                         break;
                     case OpCode.DUP:
                         ValueStack.Push(ValueStack.Peek());
@@ -123,14 +120,21 @@ namespace SHJI.VM
                         break;
                     case OpCode.RET:
                         var retval = ValueStack.Pop();
-                        position = CallStack.Pop().InstructionPointer;
+                        var cs = CallStack.Pop();
+                        position = cs.InstructionPointer;
+                        ValueStack.StackPointer = cs.BasePointer;
                         ValueStack.Push(retval);
                         break;
                     case OpCode.CALL:
                         var f = ValueStack.Pop();
-                        if (f is not JaneFunction) throw new NotImplementedException($"Object of type {f.Type} is not callable");
-                        Frame frame = new((JaneFunction)f) { InstructionPointer = position };
+                        if (f is not JaneFunction)
+                            throw new NotImplementedException($"Object of type {f.Type} is not callable");
+                        Frame frame = new(
+                            (JaneFunction)f,
+                            ValueStack.StackPointer
+                        ) { InstructionPointer = position };
                         CallStack.Push(frame);
+                        ValueStack.StackPointer = frame.BasePointer + ((JaneFunction)f).NumLocals;
                         position = 0;
                         break;
                     default:

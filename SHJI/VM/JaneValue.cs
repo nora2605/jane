@@ -77,10 +77,16 @@ namespace SHJI.VM
         public string Inspect() => $"[{string.Join(" ", Value.Select(x => x.Inspect()))}]";
     }
 
-    public readonly struct JaneFunction(byte[] instructions) : JaneValue<byte[]>
+    public readonly struct JaneFunction(byte[] instructions, int numLocals) : JaneValue<byte[]>
     {
         public byte[] Value { get; } = instructions;
+        public int NumLocals { get; } = numLocals;
         public string Type { get; } = "Fn<tup -> obj>";
-        public string Inspect() => $"<Function> {JnBytecode.BCToString(Value)}";
+        public string Inspect() =>
+#if DEBUG
+            JnBytecode.BCToString(Value);
+#else
+            "<Function>";
+#endif
     }
 }

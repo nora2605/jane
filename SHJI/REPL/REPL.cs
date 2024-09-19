@@ -69,7 +69,7 @@ namespace SHJI
                     _colorify.WriteLine("");
                     break;
                 }
-                input += addit;
+                input += "\n" + addit;
                 t = new(input);
                 tokens = [.. t];
             }
@@ -128,7 +128,7 @@ namespace SHJI
             try
             {
                 vm.Run();
-                Globals = vm.Globals;
+                Globals = vm.Store;
             }
             catch (Exception e)
             {

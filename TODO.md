@@ -2,6 +2,7 @@
 
 ## Core
 
++ Correctly Parse String & Char Escape Characters
 + Correctly Parse Compound type Definitions
 + Parse Type Annotations
 + Parse Lambda Expressions

@@ -63,8 +63,11 @@ namespace SHJI.Compiler
                         Compile(s);
                     break;
                 case BlockStatement a:
+                    EnterScope();
                     foreach (IStatement s in a.Statements)
                         Compile(s);
+                    var block = LeaveScope();
+                    scopes.Last().Instructions.AddRange(block);
                     break;
                 case ExpressionStatement a:
                     Compile(a.Expression);
@@ -109,7 +112,7 @@ namespace SHJI.Compiler
                     });
                     break;
                 case StringLiteral a:
-                    Emit(OpCode.LOAD, (ulong)MakeConst(new JaneString("")));
+                    Emit(OpCode.LOAD, (ulong)GetOrCreateConst(new JaneString("")));
                     foreach (var e in a.Expressions)
                     {
                         Compile(e);
@@ -120,10 +123,10 @@ namespace SHJI.Compiler
                     Compile(a.Content);
                     break;
                 case Jane.Core.StringContent a:
-                    Emit(OpCode.LOAD, (ulong)MakeConst(new JaneString(Regex.Unescape(a.EscapedValue))));
+                    Emit(OpCode.LOAD, (ulong)GetOrCreateConst(new JaneString(a.Value)));
                     break;
                 case IntegerLiteral a:
-                    Emit(OpCode.LOAD, (ulong)MakeConst(new JaneInt(a.Value)));
+                    Emit(OpCode.LOAD, (ulong)GetOrCreateConst(new JaneInt(a.Value)));
                     break;
                 case IfExpression a:
                     Compile(a.Condition);
@@ -154,24 +157,49 @@ namespace SHJI.Compiler
                     if (ls is null)
                         AddError(a, CompilerErrorType.Unspecified, $"Symbol {a.Name} has already been defined.");
                     else
-                        Emit(OpCode.SET, (ulong)ls.Value.Index);
+                        Emit(ls.Value.Scope == "local" ? OpCode.SET : OpCode.SET_GLOBAL, (ulong)ls.Value.Index);
                     break;
                 case Identifier a:
                     var ids = SymbolTable.Resolve(a.Value);
                     if (ids is null)
                         AddError(a, CompilerErrorType.Unspecified, $"Variable {a.Value} not declared in this scope.");
                     else
-                        Emit(OpCode.GET, (ulong)ids.Value.Index);
+                        Emit(ids.Value.Scope == "local" ? OpCode.GET : OpCode.GET_GLOBAL, (ulong)ids.Value.Index);
                     break;
                 case Assignment a:
                     Compile(a.Value);
                     Emit(OpCode.DUP);
                     var ass = SymbolTable.Resolve(a.Name.Value);
                     if (ass is null) AddError(a, CompilerErrorType.Unspecified, $"Variable {a.Value} not declared in this scope.");
-                    else Emit(OpCode.SET, (ulong)ass.Value.Index);
+                    else Emit(ass.Value.Scope == "local" ? OpCode.SET : OpCode.SET_GLOBAL, (ulong)ass.Value.Index);
+                    break;
+                case OperatorAssignment a:
+                    Compile(new Assignment() { 
+                        Token = a.Token, 
+                        Name = a.Name, 
+                        Value = new InfixExpression() {
+                            Token = a.Token,
+                            Operator = a.Operator,
+                            Left = a.Name,
+                            Right = a.Value
+                        }
+                    });
+                    break;
+                case PostfixExpression a:
+                    Compile(a.Left);
+                    if (a.Operator == "++")
+                    {
+                        Emit(OpCode.LOAD, (ulong)GetOrCreateConst(new JaneInt(1)));
+                        Emit(OpCode.ADD);
+                    }
+                    else if (a.Operator == "--")
+                    {
+                        Emit(OpCode.LOAD, (ulong)GetOrCreateConst(new JaneInt(1)));
+                        Emit(OpCode.ADD);
+                    }
                     break;
                 case FloatLiteral a:
-                    Emit(OpCode.LOAD, (ulong)MakeConst(new JaneFloat(a.Value)));
+                    Emit(OpCode.LOAD, (ulong)GetOrCreateConst(new JaneFloat(a.Value)));
                     break;
                 case ArrayLiteral a:
                     foreach (IExpression arr_expr in a.Elements.Reverse())
@@ -184,9 +212,8 @@ namespace SHJI.Compiler
                     Emit(OpCode.INDEX);
                     break;
                 case CharLiteral a:
-                    string lit = Regex.Unescape(a.Value);
-                    if (lit.Length != 1) AddError(a, CompilerErrorType.Unspecified, $"Char Literal contains more than one character.");
-                    else Emit(OpCode.LOAD, (ulong)MakeConst(new JaneChar(lit[0])));
+                    if (a.Value.Length != 1) AddError(a, CompilerErrorType.Unspecified, $"Char Literal contains not exactly one character.");
+                    else Emit(OpCode.LOAD, (ulong)GetOrCreateConst(new JaneChar(a.Value[0])));
                     break;
                 case LambdaExpression a:
                     EnterScope();
@@ -204,9 +231,10 @@ namespace SHJI.Compiler
 
                     Emit(OpCode.RET);
                     Optimize();
+                    int numLocals = SymbolTable.Store.Count;
                     var instrs = LeaveScope();
-                    var lambda = new JaneFunction(instrs);
-                    Emit(OpCode.LOAD, (ulong)MakeConst(lambda));
+                    var lambda = new JaneFunction(instrs, numLocals);
+                    Emit(OpCode.LOAD, (ulong)GetOrCreateConst(lambda));
                     break;
                 case FunctionDecl a:
                     EnterScope();
@@ -217,12 +245,13 @@ namespace SHJI.Compiler
                         Emit(OpCode.PUSHTMP);
                     Emit(OpCode.RET);
                     Optimize();
+                    int fnumLocals = SymbolTable.Store.Count;
                     var finstrs = LeaveScope();
-                    var function = new JaneFunction(finstrs);
-                    Emit(OpCode.LOAD, (ulong)MakeConst(function));
+                    var function = new JaneFunction(finstrs, fnumLocals);
+                    Emit(OpCode.LOAD, (ulong)GetOrCreateConst(function));
                     var sym = SymbolTable.Define(a.Name.Value);
                     if (sym is null) AddError(currentNode, CompilerErrorType.Unspecified, "Function name already present in scope");
-                    else Emit(OpCode.SET, (ulong)sym.Value.Index);
+                    else Emit(sym.Value.Scope == "local" ? OpCode.SET : OpCode.SET_GLOBAL, (ulong)sym.Value.Index);
                     break;
                 case ReturnStatement a:
                     if (a.ReturnValue != null) Compile(a.ReturnValue);
@@ -280,19 +309,21 @@ namespace SHJI.Compiler
                 if (op == OpCode.NOP)
                     newInstrs.RemoveAt(position - 1 - (removed++));
             }
-            scopes[scopes.Count - 1].Instructions = newInstrs;
+            scopes[^1].Instructions = newInstrs;
         }
 
         private void EnterScope()
         {
             var scope = new Scope();
             scopes.Add(scope);
+            SymbolTable = SymbolTable.MakeNested();
         }
 
         private byte[] LeaveScope()
         {
             var instrs = scopes.Last().Instructions;
             scopes.RemoveAt(scopes.Count - 1);
+            SymbolTable = SymbolTable.Outer ?? throw new NullReferenceException("Outer Symbol Table not defined when leaving scope");
             return [..instrs];
         }
 
@@ -315,7 +346,7 @@ namespace SHJI.Compiler
         /// </summary>
         /// <param name="constant">The constant to be added</param>
         /// <returns>The index in the Pile</returns>
-        private int MakeConst(JaneValue constant)
+        private int GetOrCreateConst(JaneValue constant)
         {
             if (consts.TryGetValue(constant, out int val))
                 return val;
