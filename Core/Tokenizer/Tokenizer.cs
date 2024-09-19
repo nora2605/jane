@@ -1,5 +1,7 @@
 ﻿using System.Collections;
 using System.Runtime.CompilerServices;
+using System.Text.Unicode;
+using System.Transactions;
 
 namespace Jane.Core
 {
@@ -70,13 +72,32 @@ namespace Jane.Core
         private string ReadCharContent()
         {
             string ch = "";
-            while ((Peek() != '\'' || currentChar == '\\') && currentChar != '\0')
+            while (currentChar != '\'' && currentChar != '\0')
             {
-                ch += currentChar;
+                if (currentChar == '\\')
+                {
+                    ch += Peek() switch
+                    {
+                        '\\' => '\\',
+                        '0' => '\0',
+                        'n' => '\n',
+                        'a' => '\a',
+                        'b' => '\b',
+                        'e' => '\e',
+                        'f' => '\f',
+                        'r' => '\r',
+                        't' => '\t',
+                        'v' => '\v',
+                        '"' => '"',
+                        '\'' => '\'',
+                        'u' => ReadUnicodeEscapeSequence(),
+                        _ => throw new ArgumentException($"Unrecognized String Escape Sequence: \\{Peek()}")
+                    };
+                    NextChar();
+                }
+                else ch += currentChar;
                 NextChar();
             }
-            ch += currentChar;
-            NextChar();
             return ch;
         }
 
@@ -87,17 +108,47 @@ namespace Jane.Core
         private string ReadStringContent()
         {
             string content = "";
-            while ((Peek() != '"' || currentChar == '\\') && (Peek() != '{' || currentChar != '$') && currentChar != '\0')
+            while (currentChar != '"' && (Peek() != '{' || currentChar != '$') && currentChar != '\0')
             {
-                content += currentChar;
-                NextChar();
-            }
-            if (Peek() == '"')
-            {
-                content += currentChar;
+                if (currentChar == '\\')
+                {
+                    content += Peek() switch
+                    {
+                        '\\' => '\\',
+                        '0' => '\0',
+                        'n' => '\n',
+                        'a' => '\a',
+                        'b' => '\b',
+                        'e' => '\e',
+                        'f' => '\f',
+                        'r' => '\r',
+                        't' => '\t',
+                        'v' => '\v',
+                        '"' => '"',
+                        '\'' => '\'',
+                        // only supported code point specification
+                        'u' => ReadUnicodeEscapeSequence(),
+                        _ => throw new ArgumentException($"Unrecognized String Escape Sequence: \\{Peek()}")
+                    };
+                    NextChar();
+                } 
+                else content += currentChar;
                 NextChar();
             }
             return content;
+        }
+
+        private char ReadUnicodeEscapeSequence()
+        {
+            string seq = "";
+            int codePoint = 0;
+            for (int i = 0; i < 4; i++)
+            {
+                NextChar();
+                seq += Peek();
+            }
+            codePoint = (int)Parser.ParseInt(seq, 16);
+            return (char)codePoint;
         }
 
         /// <summary>

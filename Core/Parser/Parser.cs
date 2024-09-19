@@ -13,6 +13,7 @@ namespace Jane.Core
         private readonly Dictionary<TokenType, PrefixParseFn> UnaryParseFns;
         private readonly Dictionary<TokenType, InfixParseFn> BinaryParseFns;
         private readonly Dictionary<TokenType, PostfixParseFn> PostfixParseFns;
+        private readonly TokenType[] RightAssociativeOperators;
         private readonly TokenType[] AllowedOperators;
 
         private readonly Token[] tokens;
@@ -77,6 +78,10 @@ namespace Jane.Core
                 TokenType.CURRY,
                 TokenType.IN,
                 TokenType.RANGE,
+            ];
+            RightAssociativeOperators = [
+                TokenType.ASSIGN,
+                TokenType.POWER
             ];
 
             BinaryParseFns = new()
@@ -265,7 +270,7 @@ namespace Jane.Core
                 return null;
             }
             IExpression? left = prefix();
-            while (Current.Type != TokenType.SEMICOLON && precedence < CurPrecedence())
+            while (Current.Type != TokenType.SEMICOLON && (precedence < CurPrecedence() || precedence == CurPrecedence() && RightAssociativeOperators.Contains(Current.Type)))
             {
                 InfixParseFn? infix = ParseInfixExpression;
                 if (AllowedOperators.Contains(Current.Type) || BinaryParseFns.TryGetValue(Current.Type, out infix))
@@ -357,7 +362,7 @@ namespace Jane.Core
             {
                 if (Current.Type == TokenType.STRING_CONTENT)
                 {
-                    components.Add(new StringContent() { EscapedValue = Current.Literal, Token = Current });
+                    components.Add(new StringContent() { Value = Current.Literal, Token = Current });
                     Consume(TokenType.STRING_CONTENT);
                 }
                 else if (Current.Type == TokenType.STRING_INTERPOLATION_START)
@@ -409,7 +414,7 @@ namespace Jane.Core
         /// <param name="literal">The string literal to parse</param>
         /// <param name="iBase">the base</param>
         /// <returns></returns>
-        static BigInteger ParseInt(string literal, byte iBase = 10)
+        public static BigInteger ParseInt(string literal, byte iBase = 10)
         {
             literal = literal.ToLower();
             return literal.Aggregate(new BigInteger(0), (b, c) => b * iBase + (c > '9' ? 10 + c - 'a' : c - '0'));
@@ -523,7 +528,6 @@ namespace Jane.Core
             Consume();
             if (left is null) return null;
             infix.Left = left;
-            oa.Pattern = left;
             // General Operator Assignment: <pattern> <op> = <expr> is generally equivalent to <pattern> = <pattern> <op> <expr>
             // Doesn't work for some operators but that's for the compiler to decide
             if (Current.Type == TokenType.ASSIGN)
@@ -531,7 +535,9 @@ namespace Jane.Core
                 Consume(TokenType.ASSIGN);
                 IExpression? offs = ParseExpression(OperatorPrecedence.EQUALS);
                 if (offs is null) return null;
+                if (left is not Identifier) return null;
                 oa.Value = offs;
+                oa.Name = (Identifier)left;
                 return oa;
             }
             IExpression? e = ParseExpression(prec);

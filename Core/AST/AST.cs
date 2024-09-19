@@ -183,11 +183,11 @@ namespace Jane.Core
     public struct OperatorAssignment : IExpression
     {
         public Token Token { get; set; }
-        public IExpression Pattern;
+        public Identifier Name;
         public string Operator;
         public IExpression Value;
 
-        public override readonly string ToString() => $"{Pattern} {Operator}= {Value}";
+        public override readonly string ToString() => $"{Name} {Operator}= {Value}";
     }
 
     public struct CharLiteral : IExpression
@@ -207,8 +207,8 @@ namespace Jane.Core
     public struct StringContent : IExpression
     {
         public Token Token { get; set; }
-        public string EscapedValue;
-        public override readonly string ToString() => EscapedValue;
+        public string Value;
+        public override readonly string ToString() => Value;
     }
 
     public struct Interpolation : IExpression

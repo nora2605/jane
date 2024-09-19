@@ -13,6 +13,8 @@ namespace SHJI.Bytecode
         {
             { OpCode.HALT, new OpDefinition("Halt", []) },
             { OpCode.LOAD, new OpDefinition("Push Constant", [4]) },
+            { OpCode.GET_GLOBAL, new OpDefinition("Get Global", [4]) },
+            { OpCode.SET_GLOBAL, new OpDefinition("Set Global", [4]) },
             { OpCode.GET, new OpDefinition("Get Variable", [4]) },
             { OpCode.SET, new OpDefinition("Set Variable", [4]) },
             { OpCode.DUP, new OpDefinition("Duplicate", []) },
@@ -32,7 +34,7 @@ namespace SHJI.Bytecode
             { OpCode.EQUAL, new OpDefinition("Equal", []) },
             { OpCode.PUSHTMP, new OpDefinition("Push TmpReg", []) },
             { OpCode.CONSTR_ARR, new OpDefinition("Construct Array", [4]) },
-            { OpCode.CALL, new OpDefinition("Call", []) },
+            { OpCode.CALL, new OpDefinition("Call", [1]) },
             { OpCode.RET, new OpDefinition("Return", []) }
         }.ToImmutableDictionary();
 
@@ -109,6 +111,8 @@ namespace SHJI.Bytecode
         NOP,
         HALT,
         LOAD,
+        GET_GLOBAL,
+        SET_GLOBAL,
         GET,
         SET,
         DUP,
