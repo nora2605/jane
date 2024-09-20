@@ -47,7 +47,7 @@ namespace Jane.Core
         public IExpression Condition;
         public IExpression If;
         public IExpression Else;
-        public readonly override string ToString() => $"{Condition} ? {If} : {Else}";
+        public readonly override string ToString() => $"({Condition}) ? ({If}) : ({Else})";
     }
 
     public struct ArrayLiteral : IExpression
@@ -169,7 +169,7 @@ namespace Jane.Core
         public IStatement Cons; // If
         public IStatement? Alt; // Else
 
-        public override readonly string ToString() => $"if {Condition} {Cons} {(Alt is null ? "" : $"else {Alt}")}";
+        public override readonly string ToString() => $"if ({Condition}) {Cons} {(Alt is null ? "" : $"else ({Alt})")}";
     }
 
     public struct Assignment : IExpression

@@ -15,18 +15,18 @@ namespace SHJI.Util
         }
         private int sp;
 
-        public RAStack() : this(new T[256]) { }
+        public RAStack() : this(new T[1<<16]) { }
 
         public T Pop()
         {
-            return stack[--sp];
+            return stack[--StackPointer];
         }
 
-        public T Peek() => stack[sp-1];
+        public T Peek() => stack[StackPointer-1];
 
         public void Push(T value)
         {
-            stack[sp++] = value;
+            stack[StackPointer++] = value;
         }
 
         public T this[int index]

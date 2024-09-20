@@ -127,6 +127,16 @@ namespace SHJI.VM
                         break;
                     case OpCode.CALL:
                         var f = ValueStack.Pop();
+                        if (f is JaneBuiltin builtin)
+                        {
+                            List<JaneValue> builtinArgs = [];
+                            for (int argi = 0; argi < (int)operands[0]; argi++)
+                            {
+                                builtinArgs.Add(ValueStack.Pop());
+                            }
+                            ValueStack.Push(builtin.Value(builtinArgs.ToArray()));
+                            break;
+                        }
                         if (f is not JaneFunction)
                             throw new NotImplementedException($"Object of type {f.Type} is not callable");
                         JaneFunction jff = (JaneFunction)f;
@@ -245,7 +255,7 @@ namespace SHJI.VM
             throw new NotImplementedException($"INDEX instruction not implemented for types {left.Type} and {right.Type}");
         }
 
-        private static string ToStringRepresentation(JaneValue v)
+        public static string ToStringRepresentation(JaneValue v)
         {
             if (v is JaneString s) return s.Value;
             else if (v is JaneChar c) return c.Value.ToString();

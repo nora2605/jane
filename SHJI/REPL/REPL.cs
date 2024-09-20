@@ -178,7 +178,11 @@ namespace SHJI
                     // TODO
                     _colorify.WriteLine("Help yourself bro :skull emoji:");
                     break;
+                case "rload":
+                    Reset();
+                    goto load; // haha im falling through switch cases the way i want c#
                 case "load":
+                    load:
                     if (args == null || args.Length < 1)
                         _colorify.WriteLine($"Load command requires a filename");
                     else
