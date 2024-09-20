@@ -163,7 +163,12 @@ namespace SHJI.Compiler
                 case Identifier a:
                     var ids = SymbolTable.Resolve(a.Value);
                     if (ids is null)
-                        AddError(a, CompilerErrorType.Unspecified, $"Variable {a.Value} not declared in this scope.");
+                    {
+                        if (Lib.Lib.Builtins.TryGetValue(a.Value, out var builtin))
+                            Emit(OpCode.LOAD, (ulong)GetOrCreateConst(new JaneBuiltin(builtin)));
+                        else
+                            AddError(a, CompilerErrorType.Unspecified, $"Variable {a.Value} not declared in this scope.");
+                    }
                     else
                         Emit(ids.Value.Scope == "local" ? OpCode.GET : OpCode.GET_GLOBAL, (ulong)ids.Value.Index);
                     break;
@@ -249,6 +254,7 @@ namespace SHJI.Compiler
                     Emit(OpCode.LOAD, (ulong)GetOrCreateConst(lambda));
                     break;
                 case FunctionDecl a:
+                    var sym = SymbolTable.Define(a.Name.Value);
                     EnterScope();
                     foreach (Identifier argName in a.Args)
                         SymbolTable.Define(argName.Value);
@@ -263,7 +269,6 @@ namespace SHJI.Compiler
                     var finstrs = LeaveScope();
                     var function = new JaneFunction(finstrs, fnumLocals, a.Args.Length);
                     Emit(OpCode.LOAD, (ulong)GetOrCreateConst(function));
-                    var sym = SymbolTable.Define(a.Name.Value);
                     if (sym is null) AddError(currentNode, CompilerErrorType.Unspecified, "Function name already present in scope");
                     else Emit(sym.Value.Scope == "local" ? OpCode.SET : OpCode.SET_GLOBAL, (ulong)sym.Value.Index);
                     break;
@@ -288,9 +293,11 @@ namespace SHJI.Compiler
         // as if lol
         public void Optimize()
         {
-            if (CurrentInstructions.Length == 0) return;
-            OptimizePeepholePopPush();
-            RemoveNOP();
+            // Disabled as it messes with the addresses in if-instructions
+            // better to do in IL or with a better strategy
+            // if (CurrentInstructions.Length == 0) return;
+            // OptimizePeepholePopPush();
+            // RemoveNOP();
         }
 
         private void OptimizePeepholePopPush()

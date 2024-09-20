@@ -463,13 +463,15 @@ namespace Jane.Core
             var cond = ParseExpression();
             if (cond is null) return null;
             e.Condition = cond;
-            SkipEOL_S();
+            SkipEOL();
             var cons = ParseStatement();
             if (cons is null) return null;
             e.Cons = cons;
+            SkipEOL(TokenType.ELSE);
             if (Current.Type == TokenType.ELSE)
             {
                 Consume(TokenType.ELSE);
+                SkipEOL();
                 e.Alt = ParseStatement();
             }
             return e;
@@ -522,6 +524,7 @@ namespace Jane.Core
         }
         IExpression? ParseInfixExpression(IExpression? left)
         {
+            SkipEOL();
             InfixExpression infix = new() { Token = Current, Operator = Current.Literal };
             OperatorAssignment oa = new() { Token = Current, Operator = Current.Literal };
             OperatorPrecedence prec = CurPrecedence();
@@ -604,6 +607,20 @@ namespace Jane.Core
             ) return true;
             ParserError(ParserErrorType.UnexpectedToken, $"Expected EOL or SEMICOLON");
             return false;
+        }
+
+        /// <summary>
+        /// Skips EOL Tokens. If <paramref name="after"/> is specified,
+        /// it only skips the newlines if the first token after the newlines is of specified type.
+        /// </summary>
+        /// <param name="after">Optional Parameter specifying the first TokenType after newlines</param>
+        void SkipEOL(TokenType after = TokenType.EOL)
+        {
+            if (after == TokenType.EOL || tokens[readPosition..].First(x => x.Type != TokenType.EOL).Type == after)
+            {
+                while (Current.Type == TokenType.EOL)
+                    NextToken();
+            }
         }
 
         void SkipEOL_S()

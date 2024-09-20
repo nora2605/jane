@@ -1,13 +1,10 @@
-fn fib(n: uint) -> uint {
-    return if n <= 1 {
+fn fib(n) {
+    if n <= 1
         n
-    } else {
+    else
         fib(n - 1) + fib(n - 2)
-    }
 }
 
-fn main() {
-    let -c n = 10
-    let result = fib(n)
-    Tty.WriteLn("The ${n}th Fibonacci number is ${result}")
-}
+let n = 40
+let result = fib(n)
+println("The ${n}th Fibonacci number is ${result}")

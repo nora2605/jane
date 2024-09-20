@@ -91,4 +91,11 @@ namespace SHJI.VM
             "<Function>";
 #endif
     }
+
+    public readonly struct JaneBuiltin(Lib.Lib.Builtin fn) : JaneValue<Lib.Lib.Builtin>
+    {
+        public Lib.Lib.Builtin Value { get; } = fn;
+        public string Type { get; } = "Fn<tup -> obj>";
+        public string Inspect() => "<Builtin Function>";
+    }
 }
