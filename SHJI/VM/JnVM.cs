@@ -1,5 +1,4 @@
 ﻿using System.Numerics;
-
 using SHJI.Bytecode;
 using SHJI.Util;
 
@@ -12,8 +11,8 @@ namespace SHJI.VM
         public byte[] Code { get => CallStack.Peek().Function.Value; }
         public int Position { get => position - 1; }
         public JaneValue[] Store { get; private set; }
-        public RAStack<JaneValue> ValueStack { get; private set; } = new();
-        public Stack<Frame> CallStack { get; private set; } = new();
+        public RAStack<JaneValue> ValueStack { get; } = new();
+        public Stack<Frame> CallStack { get; } = new();
 
         JaneValue lastPopped = JaneValue.Abyss;
         private int position = 0;
@@ -23,7 +22,7 @@ namespace SHJI.VM
             Constants = consts;
             globals ??= new JaneValue[2 << 16];
             Store = globals;
-            JaneFunction main = new(bc, 0, 0);
+            JaneFunction main = new(bc, 0, 0, []);
             CallStack.Push(new Frame(main, 0));
         }
 
@@ -134,7 +133,7 @@ namespace SHJI.VM
                             {
                                 builtinArgs.Add(ValueStack.Pop());
                             }
-                            ValueStack.Push(builtin.Value(builtinArgs.ToArray()));
+                            ValueStack.Push(builtin.Value([.. builtinArgs]));
                             break;
                         }
                         if (f is not JaneFunction)

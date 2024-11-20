@@ -12,11 +12,12 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Core\Core.csproj" />
+    <PackageReference Include="Spectre.Console" Version="0.49.1" />
+    <PackageReference Include="Spectre.Console.Cli" Version="0.49.1" />
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="dein.Colorify" Version="2.9.0" />
+    <ProjectReference Include="..\Core\Core.csproj" />
   </ItemGroup>
 
 </Project>

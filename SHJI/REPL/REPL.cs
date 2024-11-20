@@ -1,11 +1,8 @@
 ﻿using Jane.Core;
-using Microsoft.VisualBasic;
 using SHJI.Bytecode;
 using SHJI.Compiler;
 using SHJI.VM;
-using System.Collections.Immutable;
-using System.Runtime.Serialization.Formatters.Binary;
-using System.Xml.Serialization;
+using Spectre.Console;
 
 namespace SHJI
 {
@@ -14,11 +11,11 @@ namespace SHJI
         private bool ShouldEnd { get; set; }
         public REPLLogLevel LogLevel { get; set; } = logLevel;
 
-        private readonly Colorify.Format _colorify = new(Colorify.UI.Theme.Dark);
-
         private JaneValue[] Constants = [];
         private SymbolTable SymbolTable = new();
         private JaneValue[] Globals = new JaneValue[2<<16];
+
+        private bool cancelVm = false;
 
         public REPL() : this(REPLLogLevel.WARNING) { }
 
@@ -26,7 +23,13 @@ namespace SHJI
         {
             Console.CancelKeyPress += Console_CancelKeyPress;
 
-            _colorify.WriteLine(@$"SHJI v0.1");
+            if (AnsiConsole.Profile.Capabilities.ColorSystem != ColorSystem.TrueColor)
+            {
+                AnsiConsole.WriteLine("Your Terminal does not support TrueColor :(");
+            }
+
+            AnsiConsole.Foreground = Color.Turquoise4;
+            AnsiConsole.WriteLine(@$"SHJI v0.1");
 
             while (true)
             {
@@ -36,13 +39,9 @@ namespace SHJI
         }
         void REP()
         {
-            _colorify.Write("jn> ", Colorify.Colors.txtInfo);
+            AnsiConsole.Markup("[turquoise4]jn>[/] ");
             string? input = Console.ReadLine();
-            if (input == null)
-            {
-                _colorify.WriteLine("");
-                return;
-            }
+            if (input == null || input == "") return;
             if (input.StartsWith('.'))
             {
                 string[] args = input[1..].Split(" ");
@@ -60,15 +59,12 @@ namespace SHJI
             var start = startStage;
             Tokenizer t = new(input);
             Token[] tokens = [.. t];
-            while (!t.Finished)
+            while (!t.Finished || input[^1] == '\\')
             {
-                _colorify.Write("..> ", Colorify.Colors.txtInfo);
+                AnsiConsole.Markup("[turquoise4]..>[/] ");
                 string? addit = Console.ReadLine();
-                if (addit == null)
-                {
-                    _colorify.WriteLine("");
-                    break;
-                }
+                if (addit == null) return;
+                input = input.TrimEnd('\\');
                 input += "\n" + addit;
                 t = new(input);
                 tokens = [.. t];
@@ -103,12 +99,7 @@ namespace SHJI
             JaneValue v = JaneValue.Abyss;
             JnCompiler c = new(SymbolTable, Constants);
             c.Compile(r);
-            c.Optimize();
             stageTimes.Add("Compile", DateTime.Now - startStage);
-            SymbolTable = c.SymbolTable;
-            Constants = c.Constants;
-            Log("Bytecode", REPLLogLevel.DEBUG, JnBytecode.BCToString(c.CurrentInstructions));
-            Log("Constants", REPLLogLevel.DEBUG, string.Join("\n", c.Constants.Select((a, i) => $"{i}: {a.Inspect()}::{a.Type}")));
 
             if (c.Errors.Length > 0)
             {
@@ -117,17 +108,25 @@ namespace SHJI
                     REPLLogLevel.ERROR,
                     string.Join<CompilerError>("\n", c.Errors)
                 );
-                Log("REPL State was reset due to Compiler Errors.", REPLLogLevel.WARNING);
-                // constants and symbols usually orphaned so it's better to start over
-                Reset();
                 return;
             }
+            SymbolTable = c.SymbolTable;
+            Constants = c.Constants;
+            Log("Bytecode", REPLLogLevel.DEBUG, JnBytecode.BCToString(c.CurrentInstructions));
+            Log("Constants", REPLLogLevel.DEBUG, string.Join("\n", c.Constants.Select((a, i) => $"{i}: {a.Inspect()}::{a.Type}")));
 
             startStage = DateTime.Now;
             JnVM vm = new(c.Constants, c.CurrentInstructions, Globals);
             try
             {
-                vm.Run();
+                Thread vmT = new(new ThreadStart(vm.Run));
+                vmT.Start();
+                while (vmT.IsAlive && !cancelVm) {
+#if DEBUG
+                    Thread.Sleep(500);
+                    if (vmT.IsAlive) Log("VM Stack", REPLLogLevel.DEBUG, string.Join("\n", vm.ValueStack.Select(a => a.Inspect())));
+#endif
+                }
                 Globals = vm.Store;
             }
             catch (Exception e)
@@ -137,14 +136,17 @@ namespace SHJI
                 return;
             }
             stageTimes.Add("Run", DateTime.Now - startStage);
-            Log("VM Stack", REPLLogLevel.DEBUG, string.Join("\n", vm.ValueStack.Select(a => a.Inspect())));
             v = vm.TempReg;
 
-            if (v != JaneValue.Abyss)
-                Log(v.Inspect());
+            if (v != JaneValue.Abyss && !cancelVm)
+                AnsiConsole.MarkupLineInterpolated($"[{(
+                    TypeColors.TryGetValue(v.Type, out Color cl) ?
+                        cl.ToMarkup() :
+                        LogLevelColors[REPLLogLevel.RESULT].ToMarkup()
+                )}]{v.Inspect()}[/]");
             else
                 Log("Output was abyss", REPLLogLevel.INFO);
-
+            cancelVm = false;
             stageTimes.Add("Total", DateTime.Now - start);
             Log("Times", REPLLogLevel.DEBUG, string.Join("\n", stageTimes.Select(entry => $"{entry.Key}: {entry.Value}")));
         }
@@ -153,16 +155,18 @@ namespace SHJI
         {
             if (logLevel >= LogLevel)
             {
+                AnsiConsole.Foreground = LogLevelColors[logLevel];
                 if (logLevel == REPLLogLevel.RESULT)
                 {
-                    _colorify.WriteLine(message, LogLevelColorify[logLevel]);
+                    AnsiConsole.WriteLine(message);
                     if (!string.IsNullOrEmpty(description))
-                        _colorify.WriteLine(description, LogLevelColorify[logLevel]);
+                        AnsiConsole.WriteLine(description);
+                    AnsiConsole.ResetColors();
                     return;
                 }
-                _colorify.WriteLine($"[{logLevel}] ({DateTime.Now:HH:mm:ss}) {message}", LogLevelColorify[logLevel]);
+                AnsiConsole.WriteLine($"[{logLevel}] ({DateTime.Now:HH:mm:ss}) {message}");
                 if (!string.IsNullOrEmpty(description))
-                    _colorify.WriteLine(description, LogLevelColorify[logLevel]);
+                    AnsiConsole.WriteLine(description);
             }
         }
 
@@ -176,7 +180,7 @@ namespace SHJI
                     break;
                 case "help":
                     // TODO
-                    _colorify.WriteLine("Help yourself bro :skull emoji:");
+                    AnsiConsole.WriteLine("Help yourself bro :skull emoji:");
                     break;
                 case "rload":
                     Reset();
@@ -184,7 +188,7 @@ namespace SHJI
                 case "load":
                     load:
                     if (args == null || args.Length < 1)
-                        _colorify.WriteLine($"Load command requires a filename");
+                        AnsiConsole.WriteLine($"Load command requires a filename");
                     else
                     {
                         try
@@ -194,22 +198,22 @@ namespace SHJI
                         }
                         catch (Exception ex) when (ex is FileNotFoundException or DirectoryNotFoundException or UnauthorizedAccessException)
                         {
-                            _colorify.WriteLine("File not found or inaccessible ':(");
+                            AnsiConsole.WriteLine("File not found or inaccessible ':(");
                         }
                     }
                     break;
                 case "log":
                     if (args == null || args.Length < 1)
-                        _colorify.WriteLine("Log command requires a Loglevel");
+                        AnsiConsole.WriteLine("Log command requires a Loglevel");
                     else
                     {
-                        if (Enum.TryParse<REPLLogLevel>(args[0], true, out REPLLogLevel result))
+                        if (Enum.TryParse(args[0], true, out REPLLogLevel result))
                         {
                             LogLevel = result;
                         }
                         else
                         {
-                            _colorify.WriteLine("Unrecognized Log Level. Choices are: " + string.Join(", ", Enum.GetNames<REPLLogLevel>()));
+                            AnsiConsole.WriteLine("Unrecognized Log Level. Choices are: " + string.Join(", ", Enum.GetNames<REPLLogLevel>()));
                         }
                     }
                     break;
@@ -220,7 +224,7 @@ namespace SHJI
                     Console.Clear();
                     break;
                 default:
-                    _colorify.WriteLine($"Command \"{command}\" not recognized");
+                    AnsiConsole.WriteLine($"Command \"{command}\" not recognized");
                     break;
             }
         }
@@ -230,8 +234,9 @@ namespace SHJI
             Constants = [];
             SymbolTable = new SymbolTable();
         }
-        static void Console_CancelKeyPress(object? sender, ConsoleCancelEventArgs e)
+        void Console_CancelKeyPress(object? sender, ConsoleCancelEventArgs e)
         {
+            cancelVm = true;
             e.Cancel = true;
         }
         public enum REPLLogLevel
@@ -242,12 +247,21 @@ namespace SHJI
             ERROR,
             RESULT
         }
-        private static readonly ImmutableDictionary<REPLLogLevel, string> LogLevelColorify = new Dictionary<REPLLogLevel, string>() {
-            { REPLLogLevel.DEBUG, Colorify.Colors.txtMuted },
-            { REPLLogLevel.INFO, Colorify.Colors.txtInfo },
-            { REPLLogLevel.WARNING, Colorify.Colors.txtWarning },
-            { REPLLogLevel.ERROR, Colorify.Colors.txtDanger },
-            { REPLLogLevel.RESULT, Colorify.Colors.txtSuccess }
-        }.ToImmutableDictionary();
+        private static readonly Dictionary<REPLLogLevel, Color> LogLevelColors = new() {
+            { REPLLogLevel.DEBUG, Color.Grey42 },
+            { REPLLogLevel.INFO, Color.Grey42 },
+            { REPLLogLevel.WARNING, Color.Yellow },
+            { REPLLogLevel.ERROR, Color.Red },
+            { REPLLogLevel.RESULT, Color.Green }
+        };
+
+        private static readonly Dictionary<string, Color> TypeColors = new()
+        {
+            { "int", Color.Green },
+            { "bool", Color.Blue },
+            { "str", Color.Salmon1 },
+            { "char", Color.Orange3 },
+            { "float", Color.Olive }
+        };
     }
 }

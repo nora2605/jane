@@ -1,7 +1,4 @@
 ﻿using System.Collections;
-using System.Runtime.CompilerServices;
-using System.Text.Unicode;
-using System.Transactions;
 
 namespace Jane.Core
 {
@@ -141,13 +138,12 @@ namespace Jane.Core
         private char ReadUnicodeEscapeSequence()
         {
             string seq = "";
-            int codePoint = 0;
             for (int i = 0; i < 4; i++)
             {
                 NextChar();
                 seq += Peek();
             }
-            codePoint = (int)Parser.ParseInt(seq, 16);
+            int codePoint = (int)Parser.ParseInt(seq, 16);
             return (char)codePoint;
         }
 
@@ -171,6 +167,7 @@ namespace Jane.Core
             while ((currentChar != '*' || Peek() != '/') && currentChar != '\0')
                 NextChar();
             NextChar();
+            NextChar();
         }
 
         private void NextToken()
@@ -181,7 +178,6 @@ namespace Jane.Core
                 return;
             }
             if (!inChar && !inString) SkipWhitespace();
-
 
             if (currentChar == '"')
             {
@@ -227,6 +223,7 @@ namespace Jane.Core
                 SkipLineComment();
             if (currentChar == '/' && Peek() == '*')
                 SkipBlockComment();
+            SkipWhitespace();
 
             TokenType tokenType;
             // Identifier

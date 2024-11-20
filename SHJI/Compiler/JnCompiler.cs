@@ -4,7 +4,6 @@ using SHJI.VM;
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Linq;
 using System.Net.WebSockets;
 using System.Reflection;
@@ -39,7 +38,7 @@ namespace SHJI.Compiler
 
         public JnCompiler() : this(new(), []) { }
 
-        private static readonly ImmutableDictionary<string, OpCode> OperatorToInstruction = new Dictionary<string, OpCode>()
+        private static readonly Dictionary<string, OpCode> OperatorToInstruction = new()
         {
             { "+", OpCode.ADD },
             { "-", OpCode.SUB },
@@ -50,7 +49,7 @@ namespace SHJI.Compiler
             { "^", OpCode.POW },
             { ">", OpCode.GT },
             { "<", OpCode.LT },
-        }.ToImmutableDictionary();
+        };
 
         private IASTNode? currentNode;
 
@@ -64,11 +63,14 @@ namespace SHJI.Compiler
                         Compile(s);
                     break;
                 case BlockStatement a:
-                    EnterScope();
                     foreach (IStatement s in a.Statements)
                         Compile(s);
-                    var block = LeaveScope();
-                    scopes.Last().Instructions.AddRange(block);
+                    break;
+                case ScopedStatement a:
+                    EnterScope();
+                    Compile(a.Internal);
+                    var scoped = LeaveScope();
+                    scopes.Last().Instructions.AddRange(scoped);
                     break;
                 case ExpressionStatement a:
                     Compile(a.Expression);
@@ -247,10 +249,9 @@ namespace SHJI.Compiler
                     else Emit(OpCode.ABYSS);
 
                     Emit(OpCode.RET);
-                    Optimize();
                     int numLocals = SymbolTable.Store.Count;
                     var instrs = LeaveScope();
-                    var lambda = new JaneFunction(instrs, numLocals, para.Length);
+                    var lambda = new JaneFunction(instrs, numLocals, para.Length, []);
                     Emit(OpCode.LOAD, (ulong)GetOrCreateConst(lambda));
                     break;
                 case FunctionDecl a:
@@ -264,10 +265,9 @@ namespace SHJI.Compiler
                     else if (a.Body.Statements.Last() is ExpressionStatement)
                         Emit(OpCode.PUSHTMP);
                     Emit(OpCode.RET);
-                    Optimize();
                     int fnumLocals = SymbolTable.Store.Count;
                     var finstrs = LeaveScope();
-                    var function = new JaneFunction(finstrs, fnumLocals, a.Args.Length);
+                    var function = new JaneFunction(finstrs, fnumLocals, a.Args.Length, []);
                     Emit(OpCode.LOAD, (ulong)GetOrCreateConst(function));
                     if (sym is null) AddError(currentNode, CompilerErrorType.Unspecified, "Function name already present in scope");
                     else Emit(sym.Value.Scope == "local" ? OpCode.SET : OpCode.SET_GLOBAL, (ulong)sym.Value.Index);
@@ -288,49 +288,6 @@ namespace SHJI.Compiler
                     break;
             }
             return;
-        }
-
-        // as if lol
-        public void Optimize()
-        {
-            // Disabled as it messes with the addresses in if-instructions
-            // better to do in IL or with a better strategy
-            // if (CurrentInstructions.Length == 0) return;
-            // OptimizePeepholePopPush();
-            // RemoveNOP();
-        }
-
-        private void OptimizePeepholePopPush()
-        {
-            int position = 0;
-            byte[] cur = CurrentInstructions;
-            var (opFirst, _) = JnBytecode.ReadInstruction(cur, ref position);
-            while (position < cur.Length)
-            {
-                var (opSecond, _) = JnBytecode.ReadInstruction(cur, ref position);
-                if (opFirst == OpCode.POP && opSecond == OpCode.PUSHTMP)
-                {
-                    byte[] nop = JnBytecode.Make(OpCode.NOP);
-                    ReplaceInstr(position - 2, nop);
-                    ReplaceInstr(position - 1, nop);
-                }
-                opFirst = opSecond;
-            }
-        }
-
-        private void RemoveNOP()
-        {
-            int position = 0;
-            int removed = 0;
-            byte[] cur = CurrentInstructions;
-            List<byte> newInstrs = [.. cur];
-            while (position < cur.Length)
-            {
-                var (op, _) = JnBytecode.ReadInstruction(cur, ref position);
-                if (op == OpCode.NOP)
-                    newInstrs.RemoveAt(position - 1 - (removed++));
-            }
-            scopes[^1].Instructions = newInstrs;
         }
 
         private void EnterScope()

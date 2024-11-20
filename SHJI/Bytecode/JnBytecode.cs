@@ -1,15 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Collections.Immutable;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace SHJI.Bytecode
+﻿namespace SHJI.Bytecode
 {
     public static class JnBytecode
     {
-        public static ImmutableDictionary<OpCode, OpDefinition> Definitions { get; } = new Dictionary<OpCode, OpDefinition>()
+        public static Dictionary<OpCode, OpDefinition> Definitions { get; } = new()
         {
             { OpCode.HALT, new OpDefinition("Halt", []) },
             { OpCode.LOAD, new OpDefinition("Push Constant", [4]) },
@@ -36,7 +29,7 @@ namespace SHJI.Bytecode
             { OpCode.CONSTR_ARR, new OpDefinition("Construct Array", [4]) },
             { OpCode.CALL, new OpDefinition("Call", [1]) },
             { OpCode.RET, new OpDefinition("Return", []) }
-        }.ToImmutableDictionary();
+        };
 
         public static byte[] Make(OpCode opCode, params ulong[] operands)
         {
