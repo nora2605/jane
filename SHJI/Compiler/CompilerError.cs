@@ -7,9 +7,8 @@ using Jane.Core;
 
 namespace SHJI.Compiler
 {
-    public class CompilerError(string Message, Token ErroneousToken, CompilerErrorType Type = CompilerErrorType.Unspecified)
+    public class CompilerError(string message, Token ErroneousToken, CompilerErrorType Type = CompilerErrorType.Unspecified) : Exception(message)
     {
-        public string Message { get; } = Message;
         public CompilerErrorType Type { get; } = Type;
 
         public int Line { get; } = ErroneousToken.Line;

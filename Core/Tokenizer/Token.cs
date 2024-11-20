@@ -1,13 +1,11 @@
-﻿using System.Collections.Immutable;
-
-namespace Jane.Core
+﻿namespace Jane.Core
 {
     public struct Token(TokenType Type, string Literal)
     {
         /// <summary>
         /// Dictionary of alphanumeric keywords to corresponding TokenType
         /// </summary>
-        public static ImmutableDictionary<string, TokenType> Keywords { get; } = new Dictionary<string, TokenType>() {
+        public static Dictionary<string, TokenType> Keywords { get; } = new() {
             { "abyss",      TokenType.ABYSS     },
             { "true",       TokenType.TRUE      },
             { "false",      TokenType.FALSE     },
@@ -36,12 +34,12 @@ namespace Jane.Core
             { "xor",        TokenType.L_XOR     },
             { "in",         TokenType.IN        },
             { "enum",       TokenType.ENUM      },
-        }.ToImmutableDictionary();
+        };
 
         /// <summary>
         /// Dictionary of Single Character Tokens which can't be altered in meaning by any chars after
         /// </summary>
-        public static ImmutableDictionary<char, TokenType> PrefixFree { get; } = new Dictionary<char, TokenType>() {
+        public static Dictionary<char, TokenType> PrefixFree { get; } = new() {
             { '*', TokenType.MUL },
             { '/', TokenType.DIV },
             { '(', TokenType.LPAREN },
@@ -54,18 +52,15 @@ namespace Jane.Core
             { '%', TokenType.REMAINDER },
             { '\0', TokenType.EOF },
             { '\n', TokenType.EOL },
-#if DEBUG
-            { '\\', TokenType.EOL },
-#endif
             { ',', TokenType.COMMA },
             { '_', TokenType.DISCARD },
             { '$', TokenType.CURRY }
-        }.ToImmutableDictionary();
+        };
 
         /// <summary>
         /// Dictionary of constant tokens which are not prefix-free
         /// </summary>
-        public static ImmutableDictionary<string, TokenType> NotPrefixFree { get; } = new Dictionary<string, TokenType>()
+        public static Dictionary<string, TokenType> NotPrefixFree { get; } = new()
         {
             { "+", TokenType.PLUS },
             { "-", TokenType.MINUS },
@@ -98,7 +93,7 @@ namespace Jane.Core
             { "..", TokenType.RANGE },
             { ":", TokenType.COLON },
             { "::", TokenType.COERCE }
-        }.ToImmutableDictionary();
+        };
 
         private static TokenType[] UnreadableTokenTypes { get; } = [
             TokenType.EOF,

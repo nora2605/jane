@@ -237,6 +237,14 @@ namespace Jane.Core
         public Token Token { get; set; }
 
         public readonly string TokenLiteral() => Token.Literal;
-        public override readonly string ToString() => $"{{\n{string.Join<IStatement>("\n", Statements)}\n}}";
+        public override readonly string ToString() => $"{string.Join<IStatement>("\n", Statements)}";
+    }
+
+    public struct ScopedStatement : IStatement
+    {
+        public IStatement Internal;
+        public Token Token { get; set; }
+
+        public override readonly string ToString() => $"{{\n{Internal}\n}}";
     }
 }

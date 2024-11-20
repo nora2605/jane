@@ -4,7 +4,7 @@ namespace SHJI.Util
 {
     public class RAStack<T>(IEnumerable<T> collection) : IEnumerable<T>
     {
-        private T[] stack = collection.ToArray();
+        private readonly T[] stack = collection.ToArray();
         public int StackPointer { 
             get => sp;
             set {

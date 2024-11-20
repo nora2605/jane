@@ -6,9 +6,8 @@ using System.Threading.Tasks;
 
 namespace Jane.Core
 {
-    public class ParserError(string Message, Token ErroneousToken, ParserErrorType Type = ParserErrorType.Unspecified)
+    public class ParserError(string message, Token ErroneousToken, ParserErrorType Type = ParserErrorType.Unspecified) : Exception(message)
     {
-        public string Message { get; } = Message;
         public ParserErrorType Type { get; } = Type;
 
         public int Line { get; } = ErroneousToken.Line;

@@ -2,21 +2,13 @@
 
 let name = "Jane"
 let age = 1
-let inspirations = ["Rust", "C#", "Haskell", "Go", "Gleam", "luciascarlet (Swift)", "JS/TS", ]
-let book = {
-	"title": "Writing A Compiler In Go",
-	"author": "Thorsten Ball",
-	"prequel": "Writing An Interpreter in Go"
+let inspirations = ["luciascarlet button", "Rust", "C#", "Haskell", "Go", "Gleam", "luciascarlet (Swift)", "JS/TS", ]
+
+let fst = (list) => {
+	ret list[0]
 }
 
-let print_book_name = (book) => {
-	let title = book["title"]
-	let author = book["author"]
-	/* idk */
-	__vm_println__("${author} - ${title}")
-}
-
-print_book_name(book)
+println(fst(inspirations))
 
 fn fibonacci(x) {
 	ret if x <= 1 {
@@ -26,15 +18,15 @@ fn fibonacci(x) {
 	}
 }
 
-fn map(arr, f) {
-	let h = []
-	for let a in arr {
-		h.push(f(a))
-	}
-	ret h
-}
+// fn map(arr, f) {
+// 	let h = []
+// 	for let a in arr {
+// 		h.push(f(a))
+// 	}
+// 	ret h
+// }
 
 let nums = [1, 1 + 1, 4 - 1, 2 * 2, 2 + 3, 12 / 2]
 
 // will be returned
-map(numbers, fibonacci)
+// map(numbers, fibonacci)

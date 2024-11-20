@@ -1,6 +1,3 @@
-﻿using System.Collections.Concurrent;
-using System.Diagnostics.CodeAnalysis;
-using System.Globalization;
 using System.Numerics;
 
 namespace Jane.Core
@@ -112,6 +109,7 @@ namespace Jane.Core
             ASTRoot program = new() { Token = Current };
             List<IStatement> statements = [];
             program.Statements = [];
+            SkipEOL();
             while (Current.Type != TokenType.EOF)
             {
                 IStatement? statement = ParseStatement();
@@ -131,7 +129,7 @@ namespace Jane.Core
                 TokenType.RETURN => ParseReturnStatement(),
                 TokenType.FN => ParseFunctionDecl(),
                 TokenType.CLASS => ParseClassDecl(),
-                TokenType.LCRB => ParseBlockStatement(),
+                TokenType.LCRB => ParseScopedBlockStatement(),
                 _ => ParseExpressionStatement()
             };
             return s;
@@ -171,12 +169,20 @@ namespace Jane.Core
             return statement;
         }
 
+        ScopedStatement ParseScopedBlockStatement()
+        {
+            ScopedStatement scoped = new() { Token = Current };
+            Consume(TokenType.LCRB);
+            SkipEOL_S();
+            scoped.Internal = ParseBlockStatement();
+            Consume(TokenType.RCRB);
+            return scoped;
+        }
+
         BlockStatement ParseBlockStatement()
         {
             BlockStatement block = new() { Token = Current };
             List<IStatement> statements = [];
-            Consume(TokenType.LCRB);
-            SkipEOL_S();
             while (Current.Type != TokenType.RCRB && Current.Type != TokenType.EOF)
             {
                 IStatement? statement = ParseStatement();
@@ -186,7 +192,6 @@ namespace Jane.Core
                 SkipEOL_S();
             }
             block.Statements = [.. statements];
-            Consume(TokenType.RCRB);
             return block;
         }
 
@@ -217,7 +222,10 @@ namespace Jane.Core
                 if (fntype == null) return null;
                 fn.Type = (Identifier)fntype;
             }
+            Consume(TokenType.LCRB);
+            SkipEOL();
             fn.Body = ParseBlockStatement();
+            Consume(TokenType.RCRB);
             return fn;
         }
 
@@ -229,6 +237,7 @@ namespace Jane.Core
             Consume(TokenType.LAMBDA);
             var body = ParseStatement();
             if (body is null) return null;
+            if (body is ScopedStatement scs) body = scs.Internal;
             e.Body = body;
             return e;
         }
@@ -327,9 +336,9 @@ namespace Jane.Core
         IExpression? ParseIndexingExpression(IExpression? left)
         {
             IndexingExpression e = new() { Token = Current };
+            Consume(TokenType.LSQB);
             if (left is null) return null;
             e.Indexed = left;
-            Consume(TokenType.LSQB);
             var arg = ParseExpression();
             if (arg is null) return null;
             e.Index = arg;
@@ -543,6 +552,7 @@ namespace Jane.Core
                 oa.Name = (Identifier)left;
                 return oa;
             }
+            SkipEOL();
             IExpression? e = ParseExpression(prec);
             if (e is null) return null;
             infix.Right = e;

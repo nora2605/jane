@@ -1,12 +1,4 @@
-﻿using SHJI.Bytecode;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Numerics;
-using System.Runtime.CompilerServices;
-using System.Text;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
+﻿using System.Numerics;
 
 namespace SHJI.VM
 {
@@ -77,25 +69,22 @@ namespace SHJI.VM
         public string Inspect() => $"[{string.Join(" ", Value.Select(x => x.Inspect()))}]";
     }
 
-    public readonly struct JaneFunction(byte[] instructions, int numLocals, int numParams) : JaneValue<byte[]>
+    public readonly struct JaneFunction(byte[] instructions, int numLocals, int numParams, JaneValue[] captures) : JaneValue<byte[]>
     {
         public byte[] Value { get; } = instructions;
         // Stack space to allocate
         public int NumLocals { get; } = numLocals;
         public int NumParams { get; } = numParams;
+        public JaneValue[] Captures { get; } = captures;
         public string Type { get; } = "Fn<tup -> obj>";
         public string Inspect() =>
-#if DEBUG
-            JnBytecode.BCToString(Value);
-#else
-            "<Function>";
-#endif
+            $"<Function 0x{GetHashCode():X}>";
     }
 
     public readonly struct JaneBuiltin(Lib.Lib.Builtin fn) : JaneValue<Lib.Lib.Builtin>
     {
         public Lib.Lib.Builtin Value { get; } = fn;
         public string Type { get; } = "Fn<tup -> obj>";
-        public string Inspect() => "<Builtin Function>";
+        public string Inspect() => $"<Builtin Function 0x{Value.Method.GetHashCode():X}>";
     }
 }
