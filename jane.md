@@ -6,7 +6,7 @@
 - Arrays are Lists and Slices (internal workings are unimportant for end user)
 - physical dimensions for mathematical operations (and casting) (velocity as M*S^-1 and Voltage as E*Q^-1 etc.)
 - Standard Library class for mathematical terms
-- Blocks are Expressions/implicitly called lambdas
+- Blocks are Expressions
 - named arguments
 - () operator for calling stuff
 - spelled out variants for bitwise operations (xor, nxor)
@@ -32,7 +32,6 @@ Inbuilt:
       - Can include (stateless) Functions, Classes, Structs, Enums, and Compile-Time Constants
 - Tuples
 - Arrays
-- Dynamic Type (Basically a typesafe <string, obj> dictionary)
 
 ## IO
 
@@ -44,8 +43,8 @@ Inbuilt:
 ### **Hello world but i really like OOP**
 
 ```jane
-fn -s Main(args: str[]) -> i32 {
-    Jane.Tty.WriteLn("Hello World!")
+fn main(args: str[]) -> i32 {
+    println("Hello World!")
     0
 }
 ```
@@ -144,7 +143,7 @@ let add2: Fn(i32) -> i32 = add$2
 add2(3) // >>> 5
 ```
 
-### **When you dereference a non primitive type it will be a reference and not a copy**
+### **When you dereference a non primitive class instance/object it will be a reference and not a copy**
 
 ```jane
 goo = {foo "bar" goo "gaa"};
@@ -186,7 +185,7 @@ fn -s Main() {
 // The compiler likes decorators for things where it could mix stuff up
 // If you have two static mains in your assembly, use:
 @EntryPoint
-fn -s Main() {
+fn main() {
 
 }
 
@@ -203,10 +202,9 @@ fn -s Main() {
 
 ```jane
 class Dong {
-    // -o is override, -O is operator.
     // == is standard defined for classes to be equal when they share the same memory location
     // for structs it's (shallow) value comparison by default
-    fn -oO ==(other: Me) -> bool => me.ding == other.ding
+    fn op ==(other: Me) -> bool => me.ding == other.ding
 }
 
 // As extension (somewhere, very very far away from the original definition):
@@ -222,7 +220,7 @@ let a: i32[] = 0..10;
 
 // Used in current assembly only
 ext i32[] {
-    fn Add5() => me.Map(x => x + 5)
+    fn Add5() => me.map(x => x + 5)
 }
 
 a.Add5(); // 5,6,7,8,9,10,11,12,13,14,15
@@ -240,44 +238,44 @@ ext -g i32[] {
 // (Good practice advice, not specification)
 ```
 
-### **Interfaces**
+### **Traits**
 
 ```jane
-// You can define an interface like this:
-interface Greetable : Stringifiable {
+// You can define a trait like this:
+trait Greetable : Convert<str> {
     fn greet() => "Hello, ${me}"
 }
 
 // Make an existing type conform to an interface by using the extension blocks
 ext -g str : Greetable {
-    fn -o greet() => "Hello, " ~ me
+    // no implementation necessary since str is already stringifiable :)
 }
 
 // Now you can use it like this:
-"nora".greet()
-// >>> Hello, nora
+"Ida".greet()
+// >>> Hello, Ida
 
-or make a class/other interface derived from it:
+// or make a class/other interface derived from it:
 
 class Person : Greetable {
-    // No implementation of greet() necessary, but Person needs to be Stringifiable to be used in a format string
-    // if necessary, implement a fn -o ToString() method
-    fn -o ToString() => me.Name
-    // An override implementation would be necessary if greet was abstract (-A switch)
+    // No implementation of greet() necessary, but Person needs to be stringifiable to be used in a format string
+    // if necessary, implement a fn convert T() method for str
+    fn convert str() => me.Name
+    // An override implementation would be necessary if greet was abstract
 }
 ```
 
-### **Computed Properties**
+### **Computed Properties** (i don't like this syntax :/ )
 
 ```jane
 // A class, struct or interface can have computed Properties
 class Person {
     // This is a property, with no getter or setter defined, it will act like a field
-    let -p Name { }
+    let Name { }
     // This property is get-only
-    let -p FullName { get }
+    let FullName { get }
     // This property is computed
-    let -p Age { get => (Now - BirthDate).Years; set => BirthDate = Now - new TimeSpan(Years: value) }
+    let -p Age { get: do (Now - BirthDate).Years; set: value => BirthDate = Now - new TimeSpan(Years: value) }
 }
 ```
 
@@ -322,10 +320,6 @@ if g iso Person {
 1 nand 1 // Binary nand
 1 nor 1 // Binary nor
 !1 // Binary negation
-x ==& y // Checks for a binary flag x on y (basically)
-// (This is operator chaining and works for any 2 operators)
-// (Generally: <x left-op right-op y> is equal to <x right-op x left-op y>)
-// Meaning x ==& y -> x == x & y
 
 1 && 1 // Boolean and (if the first one is false, the second one does NOT get evaluated)
 1 || 1 // Boolean or (same thing)
@@ -366,32 +360,32 @@ x ==& y // Checks for a binary flag x on y (basically)
 ### **Error handling**
 
 ```jane
-fn -ps readFile(path: str) -> str {
+fn readFile(path: str) -> str {
     let stream = open(path, "r")
     // Error: Result<Stream, Error> does not have the method readToEnd()
     stream.readToEnd()
 }
 
-fn -ps readFile(path: str) -> str {
+fn readFile(path: str) -> str {
     // Error: Bubbling up not allowed in non-throwing function
     let stream = try open(path, "r")
     stream.readToEnd()
 }
 
-// Do this instead (-t = --throws)
-fn -ps -t readFile(path: str) -> str {
+// Do this instead
+fn throws readFile(path: str) -> str {
     let stream = try open(path, "r")
     stream.readToEnd()
 }
 
 // If you're sure, you can force an unwrap of a throwing function
-fn -ps readFile(path: str) -> str {
+fn readFile(path: str) -> str {
     let stream = open(path, "r")! // danger zone!
     stream.readToEnd()
 }
 
 // If you're unsure, you can catch with different flags
-fn -pst readFile(path: str) -> str {
+fn throws readFile(path: str) -> str {
     // print error to stderr and bubble up
     let stream = try -p open(path, "r")
     
@@ -400,23 +394,23 @@ fn -pst readFile(path: str) -> str {
 }
 
 // Try/Catch Blocks
-fn -ps readFile(path: str) -> str {
+fn readFile(path: str) -> str {
     // when error handling, you might want to be inside a block where multiple things can fail:
     try {
         let stream = open(path, "r")
         let result = UTF8.fromBytes(stream)
         return result
     } catch (FileNotFound) {
-        Tty.WriteLn("didn't find file :(")
+        println("didn't find file :(")
     } catch (InvalidUTF8) {
-        Tty.WriteLn("that seems to be some binary ahh")
+        println("that seems to be some binary ahh")
     } finally {
         return "";
     }
 }
 
 // You can use the same modifiers here, and also just panic on catch:
-fn -ps readFile(path: str) -> str {
+fn readFile(path: str) -> str {
     // -f forces an unwrap when there is no return value (like in a block)
     try -f {
         ...
@@ -429,7 +423,7 @@ fn -ps readFile(path: str) -> str {
 ```jane
 // If you want to embed a file at compile time, whether it be a config, audio, image or script file, you can use the IO.embed function
 // By using the constant switch on the let, you enable the variable to be defined at compile time
-// In interpreted mode, the file will be read JIT
+// In interpreted mode, the file will be read JIT ig
 
 let -c sfx: Buffer = embed("./sfx1.wav")
 
@@ -449,4 +443,15 @@ if something() {
 // use a postfix ! for that
 
 let bar: i32 = foo!
+```
+
+### **Generating Functions**
+
+```jane
+// returns an iterator that goes from 0 to x
+fn gen some_iter(x: i32) -> i32 {
+    for let i in 0..x {
+        yield i;
+    }
+}
 ```
